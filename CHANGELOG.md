@@ -2,6 +2,18 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [12c0a73](https://github.com/Red-Eyed/rustic-python/commit/12c0a733fbe482ea6edea9ad61c98d9550d6c7cc) — 2026-09-26
+
+**Expected failures as data — 0.5.2**
+
+- Reserve application exceptions for unexpected failures and violated internal
+  assumptions. Represent anticipated failures as typed outcomes even when the
+  caller chooses to stop rather than recover.
+- Explain translating anticipated library errors at application boundaries and
+  distinguish invalid external input from broken internal preconditions.
+- Align the errors lesson, decision guide, checklist, and agent/skill instructions;
+  synchronize the project and lockfile version at `0.5.2`.
+
 ## [1f0a733](https://github.com/Red-Eyed/rustic-python/commit/1f0a7338cf7a4a7d54bdfffc7340f838d6d5177b) — 2026-09-26
 
 **Statically checked failure contracts — 0.5.1**
