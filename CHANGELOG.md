@@ -22,6 +22,9 @@
 
 ### Developers
 
+- Use one project dependency list with minimum versions; keep exact resolutions
+  in `uv.lock`.
+- Keep pytest discovery and strictness settings in a standalone `pytest.ini`.
 - Add runnable Python 3.11-compatible examples with deliberately invalid cases
   that tests verify against their expected Pyrefly diagnostics.
 - Add strict Pyrefly and Ruff configurations with locked development and example

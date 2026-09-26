@@ -22,7 +22,7 @@ expected checker diagnostics are verified by the test harness.
 ## Development commands
 
 Run from the repository root. Use uv for all Python commands; `uv run --locked`
-provisions the configured dependency groups automatically.
+provisions the project's dependencies automatically.
 
 ```sh
 uv run --python 3.11 --locked pytest  # Verify the minimum supported Python version
@@ -45,7 +45,8 @@ runtime framework. Keep README.md as the entry point and put detailed lessons in
 `docs/`. `docs/agent-guide.md` contains portable advice for readers' projects;
 this file contains instructions for maintaining this repository.
 
-`pyproject.toml` defines dependencies and pytest discovery. `pyrefly.toml` and
+`pyproject.toml` defines dependencies; `pytest.ini` defines pytest settings and
+discovery. `pyrefly.toml` and
 `ruff.toml` define strictness and required tool versions. Tool upgrades must update
 these files, `uv.lock`, and the verified baseline in `docs/tooling.md` together.
 

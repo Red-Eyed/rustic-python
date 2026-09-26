@@ -47,9 +47,9 @@ inspect Markdown fences; the synchronization test connects those fences to check
 Python files.
 
 The repository is a non-distributable `uv` project: `pyproject.toml` manages tools
-and project metadata without installing a library package. Its default dependency
-groups include development tools and the libraries needed by executable examples;
-`uv run` provisions both automatically. To adopt the policy in another project,
+and project metadata without installing a library package. One dependency list
+includes the tools and libraries needed by this tutorial;
+`uv run` provisions them automatically. To adopt the policy in another project,
 the two standalone TOML configs are the reusable starting point.
 
 ## What the configurations enforce
