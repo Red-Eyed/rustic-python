@@ -58,6 +58,11 @@ conflicting installations. Test changes through temporary destinations.
 Code, and Cline. Keep its host locations grounded in official documentation.
 The primary reader flow is a link given to the agent, which installs the ready-made
 ZIP; local build tools are only needed by contributors.
+Bundles include `rustic-python-source.json` with the source revision, dirty state,
+and file inventory hashes. The skill checks GitHub before each task and follows
+INSTALL.md for refresh, Pages-lag fallback, and preservation of local edits.
+Keep this workflow agent-operated; do not add a background updater or install
+application dependencies just to refresh reference material.
 
 `pyproject.toml` defines dependencies; `pytest.ini` defines pytest settings and
 discovery. `pyrefly.toml` and

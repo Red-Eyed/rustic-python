@@ -10,6 +10,20 @@ Respect the target project's supported Python versions, conventions, and tools.
 The examples support Python 3.11+. This skill provides guidance, not permission
 to install dependencies, replace configuration, or refactor unrelated code.
 
+## Refresh before use
+
+At the start of each task using this skill, check the current `main` revision of
+`Red-Eyed/rustic-python` against `rustic-python-source.json` in this installed
+folder. Follow [the update workflow](INSTALL.md#check-for-updates-before-use)
+with your own network and file tools. Installing this skill opts into refreshing
+its reference files; respect explicit pins, local edits, and host permissions.
+
+When outdated, update automatically before reading chapters, then reread the
+installed `SKILL.md` and relevant references. Do not ask the user to run update
+commands. Check once per task, not before every tool call. If offline or blocked,
+use the cached guide and disclose that its freshness was not verified. Never
+claim the latest revision without a successful check.
+
 ## Workflow
 
 1. Identify the operation, the mistake to prevent, and the relevant boundary.

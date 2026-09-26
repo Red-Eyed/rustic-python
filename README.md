@@ -51,6 +51,9 @@ https://raw.githubusercontent.com/Red-Eyed/rustic-python/main/INSTALL.md
 
 Works with Codex, Claude Code, and Cline. See [agent setup](docs/codex.md) for
 invocation examples, project scope, and updates.
+The installed skill checks the repository before each task and refreshes its
+references automatically. Offline use keeps the cached guide and reports that
+freshness could not be verified.
 
 ## Run the checks
 

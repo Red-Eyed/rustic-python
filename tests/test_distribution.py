@@ -1,6 +1,7 @@
 """Verify portable skill content, book navigation, and safe local installation."""
 
 import re
+import subprocess
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -9,6 +10,13 @@ import pytest
 from tools.bundle import ROOT, build_bundles
 from tools.check_book import check_book
 from tools.install_skill import install_skill
+from tools.skill_metadata import (
+    METADATA_FILE,
+    SkillMetadata,
+    file_hashes,
+    git_output,
+    source_revision,
+)
 
 
 @pytest.fixture
@@ -55,6 +63,92 @@ def test_book_lists_all_chapters(skill: Path) -> None:
         assert (source / link).is_file(), link
     chapters = {f"docs/{page.name}" for page in (ROOT / "docs").glob("*.md")}
     assert chapters - {"docs/SUMMARY.md"} <= set(links)
+
+
+def test_bundle_records_its_revision_and_complete_inventory(skill: Path) -> None:
+    """The downloadable snapshot carries the same provenance as the staged files."""
+    metadata = SkillMetadata.model_validate_json((skill / METADATA_FILE).read_bytes())
+    assert metadata.source == source_revision(ROOT)
+    assert metadata.files == file_hashes(skill)
+    assert "SKILL.md" in metadata.files
+    assert "INSTALL.md" in metadata.files
+    assert "docs/data-modeling.md" in metadata.files
+    assert METADATA_FILE not in metadata.files
+    archive = skill.parents[1] / "book-source/downloads/rustic-python.zip"
+    with ZipFile(archive) as bundle:
+        assert (
+            bundle.read(f"rustic-python/{METADATA_FILE}")
+            == (skill / METADATA_FILE).read_bytes()
+        )
+
+
+@pytest.mark.parametrize("change", ["edit", "delete", "add"])
+def test_inventory_detects_local_changes(skill: Path, change: str) -> None:
+    """Local reference changes must not be mistaken for an untouched installation."""
+    metadata = SkillMetadata.model_validate_json((skill / METADATA_FILE).read_bytes())
+    chapter = skill / "docs/data-modeling.md"
+    match change:
+        case "edit":
+            chapter.write_text("Local customization\n")
+        case "delete":
+            chapter.unlink()
+        case "add":
+            (skill / "notes.md").write_text("Keep my notes\n")
+    assert file_hashes(skill) != metadata.files
+
+
+def test_inventory_ignores_caches_from_running_examples(skill: Path) -> None:
+    """Executing bundled examples must not be treated as editing the guide."""
+    before = file_hashes(skill)
+    cache = skill / "examples/__pycache__"
+    cache.mkdir()
+    (cache / "lesson.pyc").write_bytes(b"cached")
+    (skill / ".pytest_cache").mkdir()
+    (skill / ".pytest_cache/README.md").write_text("generated")
+    assert file_hashes(skill) == before
+
+
+def test_inventory_rejects_symlinked_references(skill: Path, tmp_path: Path) -> None:
+    """An external linked reference must not be hashed as managed bundle content."""
+    external = tmp_path / "external.md"
+    external.write_text("user data")
+    (skill / "custom.md").symlink_to(external)
+    with pytest.raises(ValueError, match="Unexpected symlink"):
+        file_hashes(skill)
+
+
+@pytest.fixture
+def source_checkout(tmp_path: Path) -> Path:
+    """Clone local history into a disposable checkout without network or commits."""
+    checkout = tmp_path / "checkout"
+    subprocess.run(
+        ["git", "clone", "--quiet", "--no-hardlinks", str(ROOT), str(checkout)],
+        check=True,
+        capture_output=True,
+    )
+    return checkout
+
+
+def test_provenance_distinguishes_clean_dirty_and_ignored_files(
+    source_checkout: Path,
+) -> None:
+    """A development build must not impersonate a clean published commit."""
+    clean = source_revision(source_checkout)
+    assert clean.commit == git_output(ROOT, "rev-parse", "HEAD")
+    assert not clean.dirty
+    (source_checkout / "build").mkdir()
+    (source_checkout / "build/generated.txt").write_text("ignored")
+    assert source_revision(source_checkout) == clean
+    (source_checkout / "README.md").write_text("changed")
+    assert source_revision(source_checkout).dirty
+    git_output(source_checkout, "add", "README.md")
+    assert source_revision(source_checkout).dirty
+
+
+def test_provenance_includes_untracked_source_files(source_checkout: Path) -> None:
+    """An uncommitted new lesson is not part of the recorded HEAD revision."""
+    (source_checkout / "docs/new-lesson.md").write_text("new lesson")
+    assert source_revision(source_checkout).dirty
 
 
 def test_install_is_idempotent_and_tracks_rebuilds(skill: Path, tmp_path: Path) -> None:

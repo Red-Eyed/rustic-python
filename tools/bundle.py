@@ -4,6 +4,8 @@ import re
 import shutil
 from pathlib import Path
 
+from tools.skill_metadata import write_metadata
+
 ROOT = Path(__file__).resolve().parents[1]
 FILES = (
     "README.md",
@@ -88,6 +90,7 @@ def build_bundles(root: Path, output: Path) -> Path:
         book_summary((root / "docs/SUMMARY.md").read_text())
     )
     shutil.copy2(root / "skills/rustic-python/SKILL.md", skill / "SKILL.md")
+    write_metadata(root, skill)
     downloads = book / "downloads"
     downloads.mkdir()
     shutil.make_archive(

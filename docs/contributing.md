@@ -61,6 +61,10 @@ The build uses upstream mdBook binaries on macOS and Linux and keeps them under
 ignored `build/tools/`. Output goes to `build/book/`; the skill goes to
 `build/skills/rustic-python/`. Generated copies are never edited or committed.
 After editing source chapters, restart `just serve` to refresh its staged input.
+Build from a Git checkout: skill bundles record its HEAD, dirty state, and file
+hashes in `rustic-python-source.json`. Dirty local builds are usable previews,
+but must not be described as an exact published revision. Build from a clean,
+stable checkout when producing a distributable snapshot.
 The fixture diagram uses Mermaid from a CDN; when unavailable, its source remains
 visible. The installed skill's references do not require network access.
 
