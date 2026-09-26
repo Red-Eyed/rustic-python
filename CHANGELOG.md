@@ -2,6 +2,24 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [5fed7b8](https://github.com/Red-Eyed/rustic-python/commit/5fed7b83804dfa1a8fdc998fab28568119f877a7) — 2026-09-26
+
+**Precise application boundaries — 0.4.0**
+
+- Change `parse_metadata`, `parse_task`, and `prepare_inference` to accept JSON
+  text instead of arbitrary Python values. Callers copying these examples should
+  pass the serialized input directly to Pydantic rather than decode it first.
+- Replace `VendorCall` and `predict(request, vendor)` with a bound `Predictor`:
+  use `vendor = bind_vendor(sdk_call)`, then `vendor(request)`. The callable returns
+  validated outcomes; response parsing is private to the adapter.
+- Keep unknown library values inside integration seams and narrow the settings
+  validator's output to `int`. Move the mapping-pattern checker reproduction
+  into the test harness and use a precise union in the runnable lesson.
+- Load the installation destination through pydantic-settings while preserving
+  the `SKILLS_DIR` override and default location.
+- Update linked lessons, agent guidance, and static and runtime regression cases;
+  verify 223 tests on Python 3.11 and synchronize the manifest and lockfile version.
+
 ## [8205663](https://github.com/Red-Eyed/rustic-python/commit/8205663ca6fea4307c856bb6c5a5482ae0670b97) — 2026-09-26
 
 **Design and review checklist**
