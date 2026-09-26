@@ -7,7 +7,9 @@
 
 Catch incorrect API calls, missing cases, and invalid state transitions before
 running your code. Model uncertainty explicitly, validate external data at the
-boundary, and test the behavior that static types cannot establish.
+boundary with Pydantic, load configuration with pydantic-settings, and test the
+behavior that static types cannot establish. Keep validation outside compiled
+inference and native tensors inside numerical code.
 
 This is a living guide for engineers and LLM coding agents, with runnable examples
 and strict Pyrefly/Ruff configurations. The principles apply to libraries, services,
@@ -26,10 +28,10 @@ concrete before/after examples, and tradeoffs. Then follow the guide by topic:
 | [Edge cases and acceptable simplifications](docs/practical-choices.md) | When plain Python is enough, boundary decisions, and what not to simplify away |
 | [Working with checker limitations](docs/checker-limitations.md) | Inference gaps, inaccurate stubs, reproducible bugs, and scoped workarounds |
 | [Tooling and strictness](docs/tooling.md) | Python 3.11 support, setup, checker policy, and running examples |
-| [Modeling data](docs/data-modeling.md) | Precise records, sum types, exhaustive matching, and nominal-type tradeoffs |
+| [Modeling data](docs/data-modeling.md) | Validated records, Pydantic discriminated unions, exhaustive matching, and nominal-type tradeoffs |
 | [Errors and absence](docs/errors-and-absence.md) | Explicit results and reason-carrying missing values |
 | [OOP, protocols, and plugins](docs/oop-and-plugins.md) | Composition, small interfaces, registries, wrappers, and extensions |
-| [State, generics, and immutability](docs/state-and-generics.md) | Fitted/unfitted APIs, preserved type relationships, and mutation limits |
+| [State, generics, and immutability](docs/state-and-generics.md) | Fitted/unfitted APIs, generics, pydantic-settings, and mutation limits |
 | [Untyped third-party boundaries](docs/third-party-boundaries.md) | Containing loose dictionaries, unknown outputs, exceptions, and mutation |
 | [Tensors and scientific correctness](docs/ml-correctness.md) | Static shape support, runtime checks, and guarantees types cannot provide |
 | [Testing with pytest](docs/testing.md) | conftest, fixture dependency graphs, parametrization, cleanup, and anti-patterns |

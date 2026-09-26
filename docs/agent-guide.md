@@ -13,8 +13,14 @@ instructions. Repository-specific requirements take precedence over this guide.
    relationships. Do not introduce `Any`, casts, or ignores merely to silence
    unexplained diagnostics. For a verified limitation, use the smallest justified
    workaround described in [checker limitations](checker-limitations.md).
-4. Validate external data once at the boundary. Keep pure transformations separate
-   from filesystem, network, logging, and training orchestration concerns.
+4. Validate external schemas with Pydantic at the boundary and load environment
+   configuration with pydantic-settings. Build CLIs with its `CliApp`, typed
+   arguments, flags, and subcommands instead of hand-written argparse.
+   Use discriminated unions for tagged
+   payload alternatives. Select coercion and extra-field policies explicitly.
+   Keep validation outside numerical and compiled inference code; pass native
+   tensors and plain `NamedTuple`/`TypedDict` records there. Keep pure transformations
+   separate from filesystem, network, logging, and training orchestration concerns.
 5. Use `match` for variant dispatch and `assert_never` for exhaustive closed unions.
    Do not add a catch-all value that silently accepts future variants.
 6. Prefer frozen records and immutable members when mutation is unnecessary.

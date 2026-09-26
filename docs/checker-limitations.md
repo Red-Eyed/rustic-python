@@ -2,6 +2,10 @@
 
 [Project overview and reading path](../README.md)
 
+The manual narrowing examples here isolate checker behavior. For production
+external schemas, use [Pydantic boundary validation](data-modeling.md), rather
+than copying a checker reproduction into an application parser.
+
 Python is not Rust, and a type checker is not an oracle. It can reject valid code,
 lose information across an abstraction, trust an inaccurate stub, or accept a
 program that fails at runtime. The objective is a useful checked codebase, not

@@ -8,7 +8,13 @@ from examples.iterator_batches import full_batches
 
 
 @pytest.mark.parametrize(
-    ("raw", "expected"), [("0", "class 0"), ("bad", "rejected: not an integer")]
+    ("raw", "expected"),
+    [
+        ("0", "class 0"),
+        ("7.0", "class 7"),
+        ("7.5", "rejected: not a nonnegative integer"),
+        ("bad", "rejected: not a nonnegative integer"),
+    ],
 )
 def test_expression_handles_both_paths(raw: str, expected: str) -> None:
     """Mapping transforms success while the error renderer handles failure."""

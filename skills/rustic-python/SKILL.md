@@ -17,9 +17,12 @@ to install dependencies, replace configuration, or refactor unrelated code.
    current task needs; do not load the whole book.
 3. Choose the simplest representation that preserves the required contract.
    Keep native tensors and arrays; wrappers need a concrete boundary benefit.
-4. Validate unknown data at entry points. Preserve meaningful failure and absence
-   information. Prefer small protocols at real substitution points and closed
-   unions when alternatives must be exhaustively handled.
+4. Validate external schemas with Pydantic and load environment configuration with
+   pydantic-settings. Build CLIs with its CliApp and typed argument models instead
+   of hand-written argparse. Use discriminated unions for tagged payloads. Keep validation
+   outside compiled inference; pass tensors and plain NamedTuple/TypedDict records
+   to the core. Preserve meaningful failures and absence reasons. Prefer small
+   protocols at substitution points and closed unions for exhaustive handling.
 5. Verify with the target project's checker and relevant behavioral tests.
    Distinguish static guarantees, runtime validation, and conventions. Report
    checker workarounds with evidence and a removal condition.

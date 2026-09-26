@@ -1,8 +1,12 @@
 """Compose expected failures using Expression's typed Result operations."""
 
 from dataclasses import dataclass
+from typing import Annotated
 
 from expression import Result
+from pydantic import Field, TypeAdapter, ValidationError
+
+LABEL = TypeAdapter[int](Annotated[int, Field(ge=0)])
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,11 +19,11 @@ class InvalidLabel:
 def parse_label(raw: str) -> Result[int, InvalidLabel]:
     """Return a nonnegative label or a typed error for malformed input."""
     try:
-        value = int(raw)
-    except ValueError:
-        return Result[int, InvalidLabel].Error(InvalidLabel("not an integer"))
-    if value < 0:
-        return Result[int, InvalidLabel].Error(InvalidLabel("negative label"))
+        value = LABEL.validate_python(raw)
+    except ValidationError:
+        return Result[int, InvalidLabel].Error(
+            InvalidLabel("not a nonnegative integer")
+        )
     return Result[int, InvalidLabel].Ok(value)
 
 

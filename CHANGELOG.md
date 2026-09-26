@@ -1,43 +1,56 @@
 # Changelog
 
-## [Unreleased]
+Changes are grouped by commit, newest first. Dates come from Git history.
 
-### Highlights
+## [bd956dc](https://github.com/Red-Eyed/rustic-python/commit/bd956dc) — 2026-09-26
 
-- Add an online book with chapter navigation and search, plus an offline Codex
-  skill generated from the same maintained guide.
-- Add a practical guide to Rust-inspired Python types and design, with ML and
-  data science examples and explicit limits on what static checking guarantees.
+**Agent-operated installation and just recipes**
 
-### Documentation
+- Add a single installation-instructions link for Codex, Claude Code, and Cline.
+  The agent installs the ready-made bundle and verifies its references.
+- Make agent-operated installation the primary README and book workflow.
+- Replace Make with just for checks, book builds, and local skill installation;
+  install just in GitHub Actions.
+- Update the project version to `0.2.1`.
 
-- Organize the guide into topic pages covering records, sum types, errors,
-  absence, state transitions, generics, immutability, protocols, and plugins.
-- Demonstrate validation around untyped third-party code, including unknown
-  payloads, exceptions, mutation, and inaccurate type stubs.
-- Explain edge cases, acceptable simplifications, checker limitations, and the
-  runtime checks still needed for numerical and tensor correctness.
-- Add pytest lessons covering fixture dependency graphs, `conftest.py`,
-  parametrization, resource cleanup, and testing anti-patterns.
-- Explain where supplementary libraries such as Expression and more-itertools
-  help, alongside their limitations.
+## [20f1f38](https://github.com/Red-Eyed/rustic-python/commit/20f1f38) — 2026-09-26
 
-### Developers
+**Online book and portable Codex skill**
 
-- Add agent-operated installation instructions for Codex, Claude Code, and Cline;
-  readers give their agent a link instead of running setup commands.
-- Replace Make targets with just recipes for checks, book builds, and skill
-  installation; install just automatically in the GitHub Actions workflow.
-- Add book and skill build targets, safe local skill installation, and GitHub
-  Actions checks with GitHub Pages deployment for successful main builds.
-- Use one project dependency list with minimum versions; keep exact resolutions
-  in `uv.lock`.
-- Keep pytest discovery and strictness settings in a standalone `pytest.ini`.
-- Add runnable Python 3.11-compatible examples with deliberately invalid cases
-  that tests verify against their expected Pyrefly diagnostics.
-- Add strict Pyrefly and Ruff configurations with locked development and example
-  dependencies managed by uv.
-- Add behavioral tests and checks that documentation snippets match executable
-  sources, including reproductions for checker and stub workarounds.
-- Add repository-specific agent instructions and contribution guidance for
-  extending the guide without weakening its contracts.
+- Add an mdBook site with chapter navigation and search, built from the existing
+  guide, plus GitHub Pages deployment after successful checks.
+- Generate an offline skill bundle from the same chapters, examples, tests, and
+  configuration templates; provide a downloadable ZIP and local installation.
+- Check rendered links, chapter coverage, bundled references, and installation
+  conflicts.
+- Update the project version to `0.2.0`.
+
+## [1d92499](https://github.com/Red-Eyed/rustic-python/commit/1d92499) — 2026-09-26
+
+**Simpler tutorial configuration**
+
+- Consolidate dependencies into one list with `>=` constraints; retain exact
+  resolved versions in `uv.lock`.
+- Allow newer Ruff and Pyrefly versions in their standalone configurations.
+- Move pytest settings into `pytest.ini` and keep VS Code settings local.
+- Update the project version to `0.1.2`.
+
+## [abced5c](https://github.com/Red-Eyed/rustic-python/commit/abced5c) — 2026-09-26
+
+**Initial practical typing guide**
+
+- Add a general-purpose Rust-inspired Python guide with an ML and data science
+  bias, organized into topic pages with a README entry point.
+- Cover records, sum types, errors, absence, state, generics, immutability,
+  protocols, composition, and plugins using runnable Python 3.11 examples.
+- Demonstrate untyped third-party boundaries, checker limitations, numerical
+  correctness constraints, edge cases, and acceptable simplifications.
+- Add pytest lessons for fixture dependency graphs, parametrization, cleanup,
+  and anti-patterns, alongside guidance on supplementary libraries.
+- Add strict Ruff and Pyrefly configurations, uv tooling, and tests for runtime
+  behavior, expected type errors, and documentation synchronization.
+- Add agent instructions and contribution guidance; introduce version `0.1.1`.
+
+## [9823996](https://github.com/Red-Eyed/rustic-python/commit/9823996) — 2026-09-26
+
+- Initialize the repository with the MIT license.

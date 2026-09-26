@@ -20,10 +20,13 @@ see [acceptable simplifications](practical-choices.md#acceptable-simplifications
 """Parse labels with an explicit, typed failure outcome."""
 
 from dataclasses import dataclass
-from typing import Generic, TypeAlias, TypeVar, assert_never, final
+from typing import Annotated, Generic, TypeAlias, TypeVar, assert_never, final
+
+from pydantic import Field, TypeAdapter, ValidationError
 
 T = TypeVar("T")
 E = TypeVar("E")
+LABEL = TypeAdapter[int](Annotated[int, Field(ge=0)])
 
 
 @final
@@ -56,11 +59,9 @@ Result: TypeAlias = Ok[T] | Err[E]
 def parse_label(raw: str) -> Result[int, InvalidLabel]:
     """Parse a nonnegative label; return Err for malformed or negative input."""
     try:
-        label = int(raw)
-    except ValueError:
-        return Err(InvalidLabel(raw, "not an integer"))
-    if label < 0:
-        return Err(InvalidLabel(raw, "negative label"))
+        label = LABEL.validate_python(raw)
+    except ValidationError:
+        return Err(InvalidLabel(raw, "not a nonnegative integer"))
     return Ok(label)
 
 

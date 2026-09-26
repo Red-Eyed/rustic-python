@@ -2,7 +2,8 @@
 
 [Project overview and reading path](../README.md)
 
-The core guide's small local types explain the mechanics. In application code, established
+Pydantic and pydantic-settings are the guide's standard boundary tools.
+Small local types explain internal contracts. In application code, established
 libraries can avoid rebuilding result combinators, iterator utilities, and schema
 validators. Choose the dependency for the problem it solves, and verify the actual
 API path with Pyrefly. A library advertising type hints is not proof that every
@@ -12,16 +13,12 @@ operation preserves types or rejects misuse.
 | --- | --- | --- | --- |
 | Reusable success/failure and optional-value composition | [Expression](https://expression.readthedocs.io/en/stable/guides/getting-started.html) | `Result`, `Option`, and composition helpers | Not every variant access is statically guarded |
 | Batching and iterator transformations | [more-itertools](https://more-itertools.readthedocs.io/en/stable/) | Reusable iterable algorithms | Batch length, exhaustion, and buffering remain runtime concerns |
-| Validated configuration and SDK payloads | [Pydantic](https://docs.pydantic.dev/latest/concepts/strict_mode/) | Models and `TypeAdapter` with an explicit coercion policy | Runtime validation does not make arbitrary incoming data statically safe |
-| Typed serialization boundaries | [msgspec](https://github.com/jcrist/msgspec) | `Struct` records and typed decoding | Decoding validation is not a proof about every direct constructor call |
-| Dataframe schema and value checks | [Pandera](https://pandera.readthedocs.io/en/stable/) | Column, dtype, and value constraints | Do not assume a schema annotation makes Pyrefly prove every dataframe operation |
-| Tensor shape/dtype assertions | [jaxtyping](https://docs.kidger.site/jaxtyping/api/runtime-type-checking/) | Array annotations paired with a runtime checker | Runtime shape checks are not equivalent to Pyrefly's static shape extension |
+| Required boundary validation and SDK payloads | [Pydantic](https://docs.pydantic.dev/latest/concepts/strict_mode/) | Models and `TypeAdapter` with an explicit coercion policy | Runtime validation does not make arbitrary incoming data statically safe |
 
-**Verified here:** Expression 5.7.0 and more-itertools 11.1.0, using Python 3.11 and
-the checked-in Pyrefly/Ruff settings. Their examples and relevant limitations have
-regression tests. The other entries are selection guidance from their official
-documentation, not a claim of verified compatibility for every API or release.
-They are not installed as project dependencies.
+**Verified here:** Pydantic 2.13.5, pydantic-settings 2.15.0, Expression 5.7.0,
+and more-itertools 11.1.0. The lockfile records the exact environment; manifest
+requirements use lower bounds. Expression and more-itertools are optional design
+choices, while boundary validation examples use Pydantic consistently.
 
 ## Expression: use composition, understand variant access
 
@@ -37,8 +34,12 @@ visible. See the [Result API](https://expression.readthedocs.io/en/stable/refere
 """Compose expected failures using Expression's typed Result operations."""
 
 from dataclasses import dataclass
+from typing import Annotated
 
 from expression import Result
+from pydantic import Field, TypeAdapter, ValidationError
+
+LABEL = TypeAdapter[int](Annotated[int, Field(ge=0)])
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,11 +52,11 @@ class InvalidLabel:
 def parse_label(raw: str) -> Result[int, InvalidLabel]:
     """Return a nonnegative label or a typed error for malformed input."""
     try:
-        value = int(raw)
-    except ValueError:
-        return Result[int, InvalidLabel].Error(InvalidLabel("not an integer"))
-    if value < 0:
-        return Result[int, InvalidLabel].Error(InvalidLabel("negative label"))
+        value = LABEL.validate_python(raw)
+    except ValidationError:
+        return Result[int, InvalidLabel].Error(
+            InvalidLabel("not a nonnegative integer")
+        )
     return Result[int, InvalidLabel].Ok(value)
 
 
@@ -137,26 +138,31 @@ guide's 3.11 baseline, `itertools.batched` is unavailable: it was introduced in
 
 ## Validation libraries complement static checking
 
-For a growing external schema, prefer Pydantic over repeating a large manual parser.
-Use `model_validate` or `TypeAdapter.validate_python` at the boundary, select strict
-validation when coercion is unwanted, and decide how extra fields are handled.
-Strictness is input-dependent: JSON date strings can still be accepted where a
-Python string would be rejected. Validate the actual boundary format rather than
-assuming that strict mode means "never converts anything."
+Use Pydantic for external schemas, including small ones: `BaseModel` for model
+objects, `TypeAdapter` for plain typed structures, and validated dataclasses when
+that interface fits. Use pydantic-settings for environment configuration and
+[CLIs](state-and-generics.md#build-clis-with-pydantic-settings), instead of
+hand-written argparse. See
+[data modeling](data-modeling.md), [settings](state-and-generics.md#load-settings-at-startup),
+and the [SDK adapter](third-party-boundaries.md) for executable examples.
+
+Choose coercion deliberately. Strict float fields still accept integers; JSON
+validation can accept date strings that strict Python-object validation rejects.
+Label parsing deliberately accepts numeric text, including `"7.0"` as integer `7`;
+that is a parsing policy, not a claim that all boundaries should coerce. See
 [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
 
-Consider msgspec when typed encoding and decoding are the central requirement;
-benchmark the real workload before choosing it for speed. Prefer one boundary
-schema system per component unless two serve demonstrably different needs.
-[msgspec project documentation](https://github.com/jcrist/msgspec).
+Keep validators at ingress. Internal dataclasses, plain records, and ordinary
+algorithm precondition checks do not need a Pydantic wrapper. In particular, never
+move schema validation into compiled inference just to standardize all objects;
+see [the inference handoff](ml-correctness.md#validation-before-compiled-inference).
 
-For dataframes, Pandera can express value constraints that plain container typing
-does not capture. For arrays, jaxtyping with a runtime checker can assert shape and
-dtype relationships. Put these checks where data enters a component, and measure
-cost before applying them to every training step. Neither recommendation means
-that an annotation alone proves the dataset or tensor is valid before execution.
-[Pandera models](https://pandera.readthedocs.io/en/latest/dataframe_models.html),
-[jaxtyping runtime checking](https://docs.kidger.site/jaxtyping/api/runtime-type-checking/).
+`model_construct` bypasses validation, and `model_copy(update=...)` does not
+validate the update. Frozen models prevent ordinary field assignment, not mutation
+of a contained tensor or list. Revalidate models from untrusted paths when needed;
+avoid unchecked construction as a routine optimization. Tests must cover the
+actual admission path, not merely a model's happy-path constructor.
+[Pydantic model behavior](https://docs.pydantic.dev/latest/concepts/models/).
 
 ## Adopt libraries without weakening the checker
 

@@ -2,9 +2,9 @@
 
 [Project overview and reading path](../README.md)
 
-The guide and all examples target **Python 3.11+**. Core lessons use the standard
-library; the supplementary-library lessons use pinned Expression and more-itertools
-dependencies. Small tuples stand in for model outputs and feature vectors so the
+The guide and all examples target **Python 3.11+**. Boundary lessons use Pydantic
+and pydantic-settings; supplementary lessons use Expression and more-itertools.
+The lockfile pins the tested environment. Small tuples stand in for model outputs and feature vectors so the
 lessons do not require installing a GPU framework. They are not proposed training
 implementations.
 

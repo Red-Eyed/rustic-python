@@ -3,7 +3,10 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isfinite
-from typing import Protocol, TypeAlias
+from typing import Annotated, Protocol, TypeAlias
+
+from pydantic import ConfigDict, Field, FiniteFloat
+from pydantic.dataclasses import dataclass as validated_dataclass
 
 Features: TypeAlias = tuple[float, ...]
 
@@ -16,16 +19,11 @@ class Transform(Protocol):
         ...
 
 
-@dataclass(frozen=True, slots=True)
+@validated_dataclass(frozen=True, slots=True, config=ConfigDict(strict=True))
 class Scale:
     """Multiply coordinates by a fixed finite factor."""
 
-    factor: float
-
-    def __post_init__(self) -> None:
-        """Reject nonfinite scale factors at construction."""
-        if not isfinite(self.factor):
-            raise ValueError("factor must be finite")
+    factor: FiniteFloat
 
     def transform(self, values: Features, /) -> Features:
         """Scale finite coordinates; raise ValueError on nonfinite results."""
@@ -35,16 +33,11 @@ class Scale:
         return scaled
 
 
-@dataclass(frozen=True, slots=True)
+@validated_dataclass(frozen=True, slots=True, config=ConfigDict(strict=True))
 class Clip:
     """Provide an additional plugin without inheriting a common base class."""
 
-    limit: float
-
-    def __post_init__(self) -> None:
-        """Require a finite positive symmetric clipping limit."""
-        if not isfinite(self.limit) or self.limit <= 0:
-            raise ValueError("limit must be finite and positive")
+    limit: Annotated[FiniteFloat, Field(gt=0)]
 
     def transform(self, values: Features, /) -> Features:
         """Clip finite coordinates to the configured symmetric interval."""

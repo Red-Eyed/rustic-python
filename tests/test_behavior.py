@@ -1,9 +1,9 @@
 """Check the runtime obligations that complement the guide's static contracts."""
 
-from dataclasses import FrozenInstanceError
 from math import isfinite
 
 import pytest
+from pydantic import ValidationError
 
 from examples.explicit_results import Err, InvalidLabel, Ok, parse_label
 from examples.generic_batches import Batch, first
@@ -30,7 +30,7 @@ def test_softmax_rejects_invalid_scores(scores: tuple[float, ...]) -> None:
         softmax(Logits(scores))
 
 
-@pytest.mark.parametrize("raw", ["cat", "-1", ""])
+@pytest.mark.parametrize("raw", ["cat", "-1", "", "7.5"])
 def test_bad_label_preserves_input(raw: str) -> None:
     """A rejected label retains both the input and its explanation."""
     outcome = parse_label(raw)
@@ -42,9 +42,10 @@ def test_bad_label_preserves_input(raw: str) -> None:
             pytest.fail("expected an explicit label error")
 
 
-def test_zero_label_is_valid() -> None:
-    """A falsy label is still a successful parse."""
-    assert parse_label("0") == Ok(0)
+@pytest.mark.parametrize(("raw", "expected"), [("0", 0), ("7.0", 7)])
+def test_numeric_label_text_is_valid(raw: str, expected: int) -> None:
+    """Accept zero and integer-valued decimal text under the parsing policy."""
+    assert parse_label(raw) == Ok(expected)
 
 
 def test_undefined_precision_differs_from_zero() -> None:
@@ -91,17 +92,18 @@ def test_empty_batch_is_rejected() -> None:
         first(batch)
 
 
-def test_invalid_task_parameters_are_rejected() -> None:
+@pytest.mark.parametrize("count", [-1, 0, 1])
+def test_invalid_task_parameters_are_rejected(count: int) -> None:
     """Numerical constraints remain enforced at construction, beyond static types."""
     with pytest.raises(ValueError):
-        Classification(num_classes=1)
+        Classification(num_classes=count)
     with pytest.raises(ValueError):
         Regression(huber_delta=float("nan"))
 
 
 @pytest.mark.parametrize("attribute", ["seed", "features"])
 def test_frozen_config_rejects_dynamic_assignment(attribute: str) -> None:
-    """Ordinary runtime attribute assignment also respects dataclass freezing."""
+    """Ordinary runtime attribute assignment respects frozen settings models."""
     config = Experiment(seed=17, features=("height",))
-    with pytest.raises(FrozenInstanceError):
+    with pytest.raises(ValidationError, match="frozen"):
         setattr(config, attribute, 23)

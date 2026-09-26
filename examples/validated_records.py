@@ -1,25 +1,25 @@
 """Validate a small dataset metadata record before using its fields."""
 
-from collections.abc import Mapping
-from typing import TypedDict
+from typing import Annotated
+
+from pydantic import ConfigDict, Field, StringConstraints, TypeAdapter, with_config
+from typing_extensions import TypedDict
 
 
+@with_config(ConfigDict(strict=True, extra="ignore"))
 class DatasetMetadata(TypedDict):
     """Describe the required dataset identity and classifier output size."""
 
-    name: str
-    num_classes: int
+    name: Annotated[str, StringConstraints(pattern=r"\S")]
+    num_classes: Annotated[int, Field(ge=2)]
+
+
+METADATA = TypeAdapter[DatasetMetadata](DatasetMetadata)
 
 
 def parse_metadata(payload: object) -> DatasetMetadata:
-    """Validate required fields; ignore extra keys or raise ValueError."""
-    if not isinstance(payload, Mapping):
-        raise ValueError("metadata must be a mapping")
-    match payload:
-        case {"name": str(name), "num_classes": int(count)}:
-            if name.strip() and type(count) is int and count >= 2:
-                return {"name": name, "num_classes": count}
-    raise ValueError("expected a nonempty name and integer num_classes >= 2")
+    """Validate required fields; ignore extra keys or raise ValidationError."""
+    return METADATA.validate_python(payload)
 
 
 metadata = parse_metadata({"name": "cifar10", "num_classes": 10})

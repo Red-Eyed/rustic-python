@@ -18,9 +18,11 @@ The boundary needs three separate responsibilities:
    the result is `object`, regardless of what a vendor's documentation claims.
 
 For example, a response with confidence `"0.8"`, `True`, `NaN`, or `1.1` must not
-quietly become a valid prediction. This example accepts finite Python floats in
-`[0, 1]`; it deliberately rejects strings, integers, and numeric scalar wrappers.
-Any desired coercion belongs in a separate, explicit boundary policy.
+quietly become a valid prediction. Pydantic validates finite confidence in
+`[0, 1]` with strict mode and forbids extra fields. Strict float validation accepts
+integer endpoints `0` and `1`, converting them to floats, but rejects boolean and
+text values. Strictness is a schema policy, not an exact Python-class check;
+test any vendor-specific numeric scalar types before accepting them.
 
 [Source](../examples/third_party_boundary.py)
 
@@ -29,20 +31,23 @@ Any desired coercion belongs in a separate, explicit boundary policy.
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from math import isfinite
-from typing import TypeAlias, TypedDict, assert_never, final
+from typing import Annotated, TypeAlias, TypedDict, assert_never, final
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    StringConstraints,
+    ValidationError,
+)
 
 
-@dataclass(frozen=True, slots=True)
-class PredictRequest:
+class PredictRequest(BaseModel, frozen=True):
     """Require a nonempty finite feature vector before crossing the SDK boundary."""
 
-    features: tuple[float, ...]
-
-    def __post_init__(self) -> None:
-        """Reject invalid feature values before calling external code."""
-        if not self.features or not all(isfinite(x) for x in self.features):
-            raise ValueError("features must be nonempty and finite")
+    model_config = ConfigDict(strict=True, extra="forbid")
+    features: Annotated[tuple[FiniteFloat, ...], Field(min_length=1)]
 
 
 class VendorPayload(TypedDict):
@@ -55,12 +60,17 @@ VendorCall: TypeAlias = Callable[[VendorPayload], object]
 
 
 @final
-@dataclass(frozen=True, slots=True)
-class Prediction:
+class Prediction(BaseModel, frozen=True):
     """Carry the validated label and confidence returned by the adapter."""
 
-    label: str
-    confidence: float
+    model_config = ConfigDict(
+        strict=True,
+        extra="forbid",
+        revalidate_instances="always",
+        hide_input_in_errors=True,
+    )
+    label: Annotated[str, StringConstraints(pattern=r"\S")]
+    confidence: Annotated[FiniteFloat, Field(ge=0, le=1)]
 
 
 @final
@@ -100,18 +110,11 @@ def encode_request(request: PredictRequest) -> VendorPayload:
 
 
 def parse_response(payload: object) -> Prediction | InvalidResponse:
-    """Validate a plain dictionary; reject malformed data without coercing it."""
-    if type(payload) is not dict:
-        return InvalidResponse("expected a plain dictionary")
-    label: object = payload.get("label")
-    confidence: object = payload.get("confidence")
-    if type(label) is not str or not label.strip():
-        return InvalidResponse("label must be a nonempty string")
-    if type(confidence) is not float:
-        return InvalidResponse("confidence must be a float")
-    if not isfinite(confidence) or not 0.0 <= confidence <= 1.0:
-        return InvalidResponse("confidence must be finite and between zero and one")
-    return Prediction(label=label, confidence=confidence)
+    """Validate the SDK schema; return field errors without echoing input values."""
+    try:
+        return Prediction.model_validate(payload)
+    except ValidationError as error:
+        return InvalidResponse(str(error))
 
 
 def predict(request: PredictRequest, call: VendorCall) -> PredictOutcome:
@@ -190,8 +193,14 @@ crash. Configure timeouts where the dependency supports them and use process
 isolation when crash containment is required. This adapter makes one call and
 does not retry, log, or silently skip a sample. Those are caller policies.
 
-`Prediction` is a public dataclass, so unchecked code can construct it directly.
-The validation guarantee is specifically about values returned by `predict`.
+`Prediction` validates ordinary construction too. `model_construct` bypasses
+validation; `revalidate_instances="always"` ensures the adapter checks existing
+instances again. `parse_response` translates only Pydantic `ValidationError`;
+programming defects in validation are not ordinary vendor failures.
+`hide_input_in_errors` keeps raw values out of the string returned here, but it
+is not general redaction: field names and custom error messages can still reveal
+information, and structured errors can contain inputs. Apply logging policy at
+the caller.
 Dependency injection also means a statically compatible callback can still have
 bad behavior; the adapter checks its output rather than trusting its signature.
 

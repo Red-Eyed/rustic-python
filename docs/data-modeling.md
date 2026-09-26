@@ -7,35 +7,36 @@
 **Mistake:** a JSON dictionary is annotated as a batch record and passed downstream
 without checking its fields. An annotation or `cast` does not validate a payload.
 
-Accept `object` at an untrusted boundary, inspect it, and return a precise model.
-Use `TypedDict` when dictionary interoperability is useful, and a dataclass for an
-ordinary domain record.
+Accept `object` at an untrusted boundary and validate it with Pydantic. Use a
+`TypeAdapter` over a `TypedDict` when consumers need an ordinary dictionary, or a
+`BaseModel` when a model object is useful. Internal domain records can remain
+dataclasses; validation does not require carrying Pydantic through every function.
 
 [Source](../examples/validated_records.py)
 
 ```python
 """Validate a small dataset metadata record before using its fields."""
 
-from collections.abc import Mapping
-from typing import TypedDict
+from typing import Annotated
+
+from pydantic import ConfigDict, Field, StringConstraints, TypeAdapter, with_config
+from typing_extensions import TypedDict
 
 
+@with_config(ConfigDict(strict=True, extra="ignore"))
 class DatasetMetadata(TypedDict):
     """Describe the required dataset identity and classifier output size."""
 
-    name: str
-    num_classes: int
+    name: Annotated[str, StringConstraints(pattern=r"\S")]
+    num_classes: Annotated[int, Field(ge=2)]
+
+
+METADATA = TypeAdapter[DatasetMetadata](DatasetMetadata)
 
 
 def parse_metadata(payload: object) -> DatasetMetadata:
-    """Validate required fields; ignore extra keys or raise ValueError."""
-    if not isinstance(payload, Mapping):
-        raise ValueError("metadata must be a mapping")
-    match payload:
-        case {"name": str(name), "num_classes": int(count)}:
-            if name.strip() and type(count) is int and count >= 2:
-                return {"name": name, "num_classes": count}
-    raise ValueError("expected a nonempty name and integer num_classes >= 2")
+    """Validate required fields; ignore extra keys or raise ValidationError."""
+    return METADATA.validate_python(payload)
 
 
 metadata = parse_metadata({"name": "cifar10", "num_classes": 10})
@@ -48,9 +49,10 @@ classes = metadata["num_classes"]
 keys and incomplete typed records are rejected.
 
 **Runtime obligation:** only the parser establishes that the external value satisfies
-the schema. `TypedDict` itself is not a runtime validator. The explicit `type(count)`
-check excludes `True`, because Python's `bool` is a subtype of `int`. For larger
-schemas, use a validation library and review its coercion policy. Parse dates into
+the schema. `TypedDict` itself is not a runtime validator. Here strict validation
+rejects boolean, string, and float class counts; extra metadata keys are ignored.
+Use `typing_extensions.TypedDict` for Pydantic's Python 3.11 compatibility.
+Parse dates into
 `date` and timestamps into `datetime` at this same boundary.
 
 ## Model alternatives as alternatives
@@ -58,45 +60,45 @@ schemas, use a validation library and review its coercion policy. Parse dates in
 **Mistake:** one configuration has a string `task`, an optional `num_classes`, and
 an optional regression threshold. It admits meaningless combinations.
 
-Give each task its own fields. A union then describes the supported alternatives.
+Give each task its own fields and a literal `kind` tag. Pydantic's **discriminated
+union** uses that tag to select the schema at runtime; the Python union lets
+Pyrefly check downstream handling. These are separate guarantees.
 
 [Source](../examples/task_variants.py)
 
 ```python
 """Represent classification and regression with task-specific configuration."""
 
-from dataclasses import dataclass
-from math import isfinite
-from typing import TypeAlias, assert_never, final
+from typing import Annotated, Literal, TypeAlias, assert_never, final
+
+from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, TypeAdapter
 
 
 @final
-@dataclass(frozen=True, slots=True)
-class Classification:
+class Classification(BaseModel, frozen=True):
     """Configure a classifier with at least two output classes."""
 
-    num_classes: int
-
-    def __post_init__(self) -> None:
-        """Reject class counts that cannot describe this classifier."""
-        if type(self.num_classes) is not int or self.num_classes < 2:
-            raise ValueError("num_classes must be an integer of at least two")
+    model_config = ConfigDict(strict=True, extra="forbid")
+    kind: Literal["classification"] = "classification"
+    num_classes: Annotated[int, Field(ge=2)]
 
 
 @final
-@dataclass(frozen=True, slots=True)
-class Regression:
+class Regression(BaseModel, frozen=True):
     """Configure Huber loss with a finite positive transition threshold."""
 
-    huber_delta: float
-
-    def __post_init__(self) -> None:
-        """Reject invalid Huber thresholds at construction."""
-        if not isfinite(self.huber_delta) or self.huber_delta <= 0:
-            raise ValueError("huber_delta must be finite and positive")
+    model_config = ConfigDict(strict=True, extra="forbid")
+    kind: Literal["regression"] = "regression"
+    huber_delta: Annotated[FiniteFloat, Field(gt=0)]
 
 
-Task: TypeAlias = Classification | Regression
+Task: TypeAlias = Annotated[Classification | Regression, Field(discriminator="kind")]
+TASK = TypeAdapter[Task](Task)
+
+
+def parse_task(payload: object) -> Task:
+    """Select the tagged schema and validate its fields, or raise ValidationError."""
+    return TASK.validate_python(payload)
 
 
 def loss_name(task: Task) -> str:
@@ -110,7 +112,7 @@ def loss_name(task: Task) -> str:
             assert_never(task)
 
 
-task = Classification(num_classes=10)
+task = parse_task({"kind": "classification", "num_classes": 10})
 loss = loss_name(task)
 # rejected[missing-argument,unexpected-keyword]: Classification(huber_delta=1.0)
 # rejected[missing-argument,unexpected-keyword]: Regression(num_classes=10)
@@ -118,11 +120,26 @@ loss = loss_name(task)
 
 **Static guarantee:** each variant has the right fields; unknown constructor
 arguments fail checking. A plain `Enum` works for labels without associated data;
-dataclass variants also carry data.
+record variants also carry data.
 
 **Runtime obligation:** the type `int` does not establish a positive class count.
 Construction validates the numerical constraint. `@final` prevents subclassing in
 checked code; it does not seal Python classes at runtime.
+
+For example, `{"kind": "classification", "num_classes": 10}` selects
+`Classification`. Missing or unknown tags fail; a classification payload with
+`huber_delta` fails instead of silently ignoring a regression option. The literal
+defaults make direct constructors convenient, but an incoming dictionary must
+still supply `kind` for union dispatch. Tests cover each case in
+[test_validation.py](../tests/test_validation.py).
+
+Use `Annotated[Classification | Regression, Field(discriminator="kind")]`
+instead of asking an untagged union to guess between overlapping schemas. Reuse
+the adapter rather than rebuilding its schema per record. This works for a nested
+model field too. See [Pydantic discriminated unions](https://docs.pydantic.dev/latest/concepts/unions/#discriminated-unions).
+For labels with no associated fields, a `Literal` or enum remains sufficient.
+Keep these configuration models outside compiled inference functions; see the
+[plain-record handoff](ml-correctness.md#validation-before-compiled-inference).
 
 ## Make matching exhaustive
 

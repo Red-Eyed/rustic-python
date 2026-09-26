@@ -77,7 +77,7 @@ editing the pipeline or adding a `kind == "clip"` branch inside it.
 
 | Requirement | Representation | Why |
 | --- | --- | --- |
-| All alternatives are known and every consumer must handle them | A union of dataclass variants or literals | Adding a variant exposes incomplete `assert_never` dispatch |
+| All alternatives are known and every consumer must handle them | A union of record variants or literals | Adding a variant exposes incomplete `assert_never` dispatch |
 | New implementations can arrive independently | A small `Protocol` | Callers depend on a capability rather than a list of classes |
 | An operation has configuration or persistent state | A dataclass or ordinary class | Data and the operations maintaining its invariants stay together |
 | Reuse a sequence of behaviors | Composition | Each stage remains independently replaceable |
@@ -112,7 +112,10 @@ cannot express here.
 from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isfinite
-from typing import Protocol, TypeAlias
+from typing import Annotated, Protocol, TypeAlias
+
+from pydantic import ConfigDict, Field, FiniteFloat
+from pydantic.dataclasses import dataclass as validated_dataclass
 
 Features: TypeAlias = tuple[float, ...]
 
@@ -125,16 +128,11 @@ class Transform(Protocol):
         ...
 
 
-@dataclass(frozen=True, slots=True)
+@validated_dataclass(frozen=True, slots=True, config=ConfigDict(strict=True))
 class Scale:
     """Multiply coordinates by a fixed finite factor."""
 
-    factor: float
-
-    def __post_init__(self) -> None:
-        """Reject nonfinite scale factors at construction."""
-        if not isfinite(self.factor):
-            raise ValueError("factor must be finite")
+    factor: FiniteFloat
 
     def transform(self, values: Features, /) -> Features:
         """Scale finite coordinates; raise ValueError on nonfinite results."""
@@ -144,16 +142,11 @@ class Scale:
         return scaled
 
 
-@dataclass(frozen=True, slots=True)
+@validated_dataclass(frozen=True, slots=True, config=ConfigDict(strict=True))
 class Clip:
     """Provide an additional plugin without inheriting a common base class."""
 
-    limit: float
-
-    def __post_init__(self) -> None:
-        """Require a finite positive symmetric clipping limit."""
-        if not isfinite(self.limit) or self.limit <= 0:
-            raise ValueError("limit must be finite and positive")
+    limit: Annotated[FiniteFloat, Field(gt=0)]
 
     def transform(self, values: Features, /) -> Features:
         """Clip finite coordinates to the configured symmetric interval."""
@@ -286,3 +279,8 @@ The design question is: **must every caller know every variant, or can it work
 with any object satisfying this capability?** The first suggests a sum type; the
 second suggests a protocol. Composition lets you add behavior without forcing a
 new inheritance relationship.
+
+Scale and Clip use Pydantic-validated dataclasses for configuration at construction.
+Their numerical methods retain ordinary algorithm guards. Construct configured
+components outside the compute path; these scalar examples do not demonstrate
+Dynamo compatibility.

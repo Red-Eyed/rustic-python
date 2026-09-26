@@ -122,16 +122,29 @@ augmentation step changes it through an alias.
 ```python
 """Keep a small experiment configuration immutable at each stored level."""
 
-from dataclasses import dataclass
-from typing import Final
+from typing import Annotated, Final
+
+from pydantic import Field, StringConstraints, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-@dataclass(frozen=True, slots=True)
-class Experiment:
+class Experiment(BaseSettings, frozen=True):
     """Record a seed and an immutable sequence of feature names."""
 
-    seed: int
-    features: tuple[str, ...]
+    model_config = SettingsConfigDict(env_prefix="RUSTIC_EXPERIMENT_", extra="forbid")
+    seed: Annotated[int, Field(ge=0)] = 17
+    features: Annotated[
+        tuple[Annotated[str, StringConstraints(pattern=r"\S")], ...],
+        Field(min_length=1),
+    ] = ("height", "width")
+
+    @field_validator("seed", mode="before")
+    @classmethod
+    def reject_boolean_seed(cls, value: object) -> object:
+        """Keep bool distinct from counts while allowing numeric settings text."""
+        if isinstance(value, bool):
+            raise ValueError("seed must not be a boolean")
+        return value
 
 
 config = Experiment(seed=17, features=("height", "width"))
@@ -144,9 +157,55 @@ DEFAULT_SEED: Final[int] = 17
 **Static guarantee:** field reassignment, the nonexistent tuple mutation operation,
 and rebinding a `Final` name are rejected.
 
-**Runtime obligation:** frozen dataclasses are shallow. A frozen record containing
+**Runtime obligation:** frozen Pydantic models and dataclasses are shallow. A frozen record containing
 a tensor still allows in-place tensor operations; a tuple can contain mutable
 objects. `Final` prevents checked rebinding, not mutation of the referenced object.
 Read-only interfaces such as `Sequence` limit what a consumer may do through that
 interface but cannot prevent another alias from changing the underlying object.
 None of these mechanisms establishes exclusive ownership or freedom from data races.
+
+## Load settings at startup
+
+Use `pydantic-settings` for environment and dotenv configuration. In the example,
+`Experiment()` reads `RUSTIC_EXPERIMENT_SEED` and `RUSTIC_EXPERIMENT_FEATURES`.
+Explicit arguments override environment values, which override an explicitly
+selected dotenv file (`Experiment(_env_file=path)`), then defaults apply. The
+example does not implicitly search for a dotenv file.
+
+Settings arrive as text: a seed of `"23"` becomes `23`, and a JSON array of feature
+names becomes a tuple. This intentional conversion differs from the strict SDK
+payload policy. The seed validator excludes Python booleans; negative seeds,
+invalid numeric text, empty feature collections, and blank names are invalid.
+Do not assume blanket `strict=True` has identical behavior across settings sources
+and direct model construction. Test the actual source path.
+
+Schema failures raise `ValidationError`; malformed JSON in a complex environment
+value can raise `pydantic_settings.SettingsError` before model validation. Startup
+code should report either as a configuration failure. The
+[settings tests](../tests/test_validation.py) isolate the environment with a
+fixture and cover source precedence and invalid values.
+
+Load settings once at the application entry point and pass selected values to
+components. Reading the environment inside a transform makes behavior depend on
+hidden process state. Keep settings objects and validation outside compiled
+inference. See [settings management](https://docs.pydantic.dev/latest/concepts/pydantic_settings/).
+
+## Build CLIs with pydantic-settings
+
+Use **pydantic-settings instead of hand-written argparse** for application CLIs.
+Define arguments as typed model fields and run the command through `CliApp.run`.
+Use `BaseSettings` when command options also come from environment configuration.
+The CLI and environment then share field constraints rather than maintaining
+separate validation rules.
+
+Use `CliPositionalArg` for positional inputs, `CliImplicitFlag[bool]` for switches,
+and `CliSubCommand` for commands such as training and evaluation. A command's
+`cli_cmd` method should delegate to application functions; parsing, terminal
+output, and process exit belong at the entry point.
+See [pydantic-settings CLI support](https://docs.pydantic.dev/latest/concepts/pydantic_settings/#command-line-support).
+
+Test explicit argument lists instead of letting tests consume pytest's arguments.
+Cover invalid values, unknown options, help, and CLI/environment precedence.
+For data tools, provide JSON output alongside human-readable output. Long-running
+commands should display progress, with a quiet option; keep progress off stdout
+when stdout carries machine-readable data.

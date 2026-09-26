@@ -94,7 +94,13 @@ pytest's temporary directories, not committed example code.
 - Preserve Python 3.11 syntax: use `TypeVar`, `Generic`, and `TypeAlias` where
   needed, rather than Python 3.12 type-parameter syntax.
 - Prefer precise records for known schemas. Validate unknown inputs once at the
-  boundary. Keep native arrays and tensors in numerical code; nominal wrappers
+  boundary using Pydantic; use pydantic-settings for environment configuration
+  and CLIs. Build command interfaces with CliApp and typed argument models,
+  not hand-written argparse. Keep CLI parsing and output at the entry point.
+  Use discriminated unions for tagged external alternatives. Keep validation and
+  model construction outside compiled inference; use native tensors and plain
+  NamedTuple/TypedDict records there. Internal dataclasses and algorithm guards
+  remain appropriate. Keep native arrays and tensors in numerical code; nominal wrappers
   need a demonstrated benefit, not resemblance to Rust.
 - Use small protocols at real extension points, composition for added behavior,
   and exhaustive matching for closed unions. Do not manufacture abstractions for
@@ -109,6 +115,8 @@ pytest's temporary directories, not committed example code.
 - Describe guarantees as statically checked, runtime validated, or convention
   only. Passing type checks do not establish tensor shapes, finiteness, ownership,
   absence of exceptions, or correct training behavior.
-- Record user-visible changes under `[Unreleased]` in `CHANGELOG.md`. Do not
-  invent release dates or published versions. Commit messages must contain an
+- Keep `CHANGELOG.md` commit-based: newest first, with an actual commit link,
+  its Git date, and concrete user-visible changes. Do not add an `Unreleased`
+  section or invent commit hashes. Record a change once its commit exists;
+  changelog-only bookkeeping does not need its own entry. Commit messages contain an
   imperative title, concrete change bullets, and a paragraph explaining why.

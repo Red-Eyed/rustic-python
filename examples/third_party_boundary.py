@@ -2,20 +2,23 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from math import isfinite
-from typing import TypeAlias, TypedDict, assert_never, final
+from typing import Annotated, TypeAlias, TypedDict, assert_never, final
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    StringConstraints,
+    ValidationError,
+)
 
 
-@dataclass(frozen=True, slots=True)
-class PredictRequest:
+class PredictRequest(BaseModel, frozen=True):
     """Require a nonempty finite feature vector before crossing the SDK boundary."""
 
-    features: tuple[float, ...]
-
-    def __post_init__(self) -> None:
-        """Reject invalid feature values before calling external code."""
-        if not self.features or not all(isfinite(x) for x in self.features):
-            raise ValueError("features must be nonempty and finite")
+    model_config = ConfigDict(strict=True, extra="forbid")
+    features: Annotated[tuple[FiniteFloat, ...], Field(min_length=1)]
 
 
 class VendorPayload(TypedDict):
@@ -28,12 +31,17 @@ VendorCall: TypeAlias = Callable[[VendorPayload], object]
 
 
 @final
-@dataclass(frozen=True, slots=True)
-class Prediction:
+class Prediction(BaseModel, frozen=True):
     """Carry the validated label and confidence returned by the adapter."""
 
-    label: str
-    confidence: float
+    model_config = ConfigDict(
+        strict=True,
+        extra="forbid",
+        revalidate_instances="always",
+        hide_input_in_errors=True,
+    )
+    label: Annotated[str, StringConstraints(pattern=r"\S")]
+    confidence: Annotated[FiniteFloat, Field(ge=0, le=1)]
 
 
 @final
@@ -73,18 +81,11 @@ def encode_request(request: PredictRequest) -> VendorPayload:
 
 
 def parse_response(payload: object) -> Prediction | InvalidResponse:
-    """Validate a plain dictionary; reject malformed data without coercing it."""
-    if type(payload) is not dict:
-        return InvalidResponse("expected a plain dictionary")
-    label: object = payload.get("label")
-    confidence: object = payload.get("confidence")
-    if type(label) is not str or not label.strip():
-        return InvalidResponse("label must be a nonempty string")
-    if type(confidence) is not float:
-        return InvalidResponse("confidence must be a float")
-    if not isfinite(confidence) or not 0.0 <= confidence <= 1.0:
-        return InvalidResponse("confidence must be finite and between zero and one")
-    return Prediction(label=label, confidence=confidence)
+    """Validate the SDK schema; return field errors without echoing input values."""
+    try:
+        return Prediction.model_validate(payload)
+    except ValidationError as error:
+        return InvalidResponse(str(error))
 
 
 def predict(request: PredictRequest, call: VendorCall) -> PredictOutcome:
