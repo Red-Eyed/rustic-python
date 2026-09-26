@@ -228,6 +228,48 @@ implementation honors it. Never write a stub returning a trusted domain model
 when the real API returns unvalidated JSON. If a scoped workaround is necessary,
 keep it in the adapter and document exactly what remains unchecked.
 
+## Restrict dynamic attribute access
+
+Keep `getattr`, `setattr`, `hasattr`, and `delattr` out of ordinary application
+logic. They replace declared field or capability contracts with runtime attribute
+names. Do not use `vars`, `__dict__`, or dynamic attribute hooks to bypass the
+same restriction.
+
+For example, `getattr(config, "retries", 3)` can silently select three retries
+when the configuration field is missing or renamed. `config.retries` makes that
+field part of the checked contract. Defaults belong in the configuration model,
+where their policy is explicit, rather than at every read site.
+
+Choose a replacement that expresses the actual operation:
+
+| Dynamic pattern | Prefer |
+| --- | --- |
+| Read or write a known field by name | Direct attribute access or construction of a new typed value |
+| Probe an object's methods with `hasattr` | A small protocol for required capabilities, or explicit union variants when capabilities differ |
+| Select a handler using `getattr(component, mode)` | An explicit registry of typed callables, with a defined unknown-key outcome |
+| Copy arbitrary input keys into attributes | Pydantic validation into a declared schema at the boundary |
+| Delete a field to indicate a state change | A distinct state or a typed absence value when appropriate |
+
+`hasattr` establishes neither a method's signature nor its behavioral contract.
+A fallback value does not repair an unknown schema, and a dynamic write can erase
+the relationship between a declared field and its permitted value type. Do not
+add `__getattr__`, `__getattribute__`, `__setattr__`, or `__delattr__` merely to make
+undeclared application attributes appear valid.
+
+Reflection is permitted only when it serves a concrete boundary requirement,
+such as adapting a third-party framework, or when a test deliberately exercises
+dynamic behavior. Keep it in the smallest adapter or test, document why explicit
+access cannot serve that purpose, validate external data with Pydantic, and
+expose precise types to callers. Do not spread capability probes across consumers.
+The [frozen-settings test](../tests/test_behavior.py) deliberately uses `setattr`
+to verify runtime rejection of mutation; that is a justified test operation.
+
+This is a design and review policy, not a claim that static typing forbids all
+reflection. Checkers may understand some literal attribute names; dynamic names
+can still lose useful information. Python frameworks can legitimately implement
+dynamic APIs, but that does not require application code to adopt those APIs
+throughout its typed core.
+
 ## Escape hatches and dependency boundaries
 
 | Shortcut | What it loses | Preferred response |

@@ -44,6 +44,11 @@ claim the latest revision without a successful check.
 5. Verify with the target project's checker and relevant behavioral tests.
    Distinguish static guarantees, runtime validation, and conventions. Report
    checker workarounds with evidence and a removal condition.
+6. Keep `getattr`, `setattr`, `hasattr`, `delattr`, and equivalent reflection out
+   of application logic. Prefer declared fields, small protocols, explicit variants,
+   and typed registries. Permit only documented, localized integration seams or
+   tests that require dynamic behavior; recover precise types at that boundary.
+   See [dynamic attribute access](docs/third-party-boundaries.md#restrict-dynamic-attribute-access).
 
 ## Topic references
 

@@ -53,11 +53,15 @@ to the lesson explaining its tradeoffs and verified examples.
 
 ## Validate at boundaries
 
+- [ ] **Do:** use declared fields, small protocols, explicit variants, or typed
+  registries. **Avoid:** `getattr`, `setattr`, `hasattr`, `delattr`, or equivalent
+  reflection in application logic. Permit only documented, localized framework
+  adapters and tests that need dynamic behavior; expose precise types afterward.
+  [Dynamic attribute access](third-party-boundaries.md#restrict-dynamic-attribute-access)
 - [ ] **Do:** parse the concrete wire representation directly with Pydantic and
   expose precise types to application code. **Avoid:** `Any` or `object` in domain
   APIs; keep unavoidable library uncertainty inside a small integration adapter.
   [Data modeling](data-modeling.md)
-
 - [ ] **Do:** validate external schemas with Pydantic and choose coercion,
   unknown-field, and missing-field policies explicitly. **Avoid:** treating an
   annotation or cast as runtime validation, or passing vendor payloads through the

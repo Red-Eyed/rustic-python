@@ -62,3 +62,9 @@ and what to avoid before handing off a change. Apply only the relevant items.
 14. Treat checker output as evidence to investigate. Reproduce suspected tool/stub
     defects, preserve the application's contract, and localize workarounds with
     tests and a removal condition. Do not redesign a clean API around one checker bug.
+15. Restrict dynamic attribute access: do not use `getattr`, `setattr`, `hasattr`,
+    or `delattr` in application logic, or bypass declared contracts through `vars`,
+    `__dict__`, or dynamic attribute hooks. Prefer direct access, small protocols,
+    explicit variants, and typed registries. Allow only localized, documented
+    integration seams or tests that need reflection; validate external values and
+    return precise types. See [the boundary policy](third-party-boundaries.md#restrict-dynamic-attribute-access).
