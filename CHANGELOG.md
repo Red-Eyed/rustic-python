@@ -2,6 +2,17 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [8205663](https://github.com/Red-Eyed/rustic-python/commit/8205663ca6fea4307c856bb6c5a5482ae0670b97) — 2026-09-26
+
+**Design and review checklist**
+
+- Add paired Do / Avoid checks for data contracts, results and matching,
+  boundary validation, component design, state, and testing.
+- Link each topic to its detailed lesson and make the checklist accessible from
+  the README, book navigation, and coding-agent instructions.
+- Preserve guidance on acceptable simplifications and the limits of static
+  guarantees; update the project version to `0.3.3`.
+
 ## [f8bae47](https://github.com/Red-Eyed/rustic-python/commit/f8bae474511fef32da6c3601e9a253a14348707e) — 2026-09-26
 
 **Library result types and preserved failure diagnostics**
