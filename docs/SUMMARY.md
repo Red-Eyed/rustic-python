@@ -25,6 +25,7 @@
 
 # Using and extending the guide
 
+- [Design and review checklist](checklist.md)
 - [Using the guide in your coding agent](codex.md)
 - [Installation instructions for agents](../INSTALL.md)
 - [Instructions for coding agents](agent-guide.md)

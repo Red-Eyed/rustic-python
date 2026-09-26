@@ -25,6 +25,7 @@ concrete before/after examples, and tradeoffs. Then follow the guide by topic:
 
 | Topic | What you will learn |
 | --- | --- |
+| [Design and review checklist](docs/checklist.md) | Positive practices and what to avoid when applying the guide |
 | [Edge cases and acceptable simplifications](docs/practical-choices.md) | When plain Python is enough, boundary decisions, and what not to simplify away |
 | [Working with checker limitations](docs/checker-limitations.md) | Inference gaps, inaccurate stubs, reproducible bugs, and scoped workarounds |
 | [Tooling and strictness](docs/tooling.md) | Python 3.11 support, setup, checker policy, and running examples |

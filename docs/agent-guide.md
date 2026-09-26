@@ -5,6 +5,9 @@
 Use this section as a project prompt or reference it from the project's agent
 instructions. Repository-specific requirements take precedence over this guide.
 
+Use the [design and review checklist](checklist.md) to check positive practices
+and what to avoid before handing off a change. Apply only the relevant items.
+
 1. Identify the domain invariant before choosing the type. Explain a concrete mistake
    the representation should prevent.
 2. Keep required identity and schema fields required. Use typed variants for real
