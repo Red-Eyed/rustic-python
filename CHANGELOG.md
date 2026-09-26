@@ -2,6 +2,18 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [4a36831](https://github.com/Red-Eyed/rustic-python/commit/4a36831b801537d48e22115c04322b544dc5e0f0) — 2026-09-26
+
+**Recoverability determines failure representation — 0.5.3**
+
+- Use typed outcomes for supported recovery decisions, including retry, fallback,
+  corrected input, and rejecting a record while processing continues.
+- Reserve exceptions for operations with no meaningful recovery path that must
+  unwind. Clarify that an outer boundary can still clean up, report, or isolate
+  the failure; an exception does not require terminating the entire process.
+- Replace the expected/unexpected-only rule throughout the guide and skill;
+  synchronize the project and lockfile version at `0.5.3`.
+
 ## [12c0a73](https://github.com/Red-Eyed/rustic-python/commit/12c0a733fbe482ea6edea9ad61c98d9550d6c7cc) — 2026-09-26
 
 **Expected failures as data — 0.5.2**
