@@ -2,6 +2,36 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [1f0a733](https://github.com/Red-Eyed/rustic-python/commit/1f0a7338cf7a4a7d54bdfffc7340f838d6d5177b) — 2026-09-26
+
+**Statically checked failure contracts — 0.5.1**
+
+- Center result guidance on rejecting misuse before execution: unchecked success
+  access, confused payload types, and incomplete variant handling.
+- Recommend typed outcomes for expected failures callers should handle, replacing
+  the blanket preference for exception propagation. Keep unexpected exceptions
+  visible and distinguish static contracts from runtime input validation.
+- Update the guide and skill to require evidence of rejected misuse; synchronize
+  the project and lockfile version at `0.5.1`.
+
+## [f3d2b1b](https://github.com/Red-Eyed/rustic-python/commit/f3d2b1bb242402a7ecc53f9568010fd0b27dae26) — 2026-09-26
+
+**Optional custom result unions — 0.5.0**
+
+- Remove the returns and Expression dependencies and the Expression comparison.
+  The result lesson now defines independent frozen `Ok[T]` and `Err[E]` records
+  with `Result[T, E]` as a union alias, without a shared result base class.
+- Replace `Success`/`Failure` and extraction methods with `Ok(value=...)` and
+  `Err(error=...)` pattern matching. Readers adapting the old lesson should handle
+  each variant explicitly; the custom records provide no map or unwrap methods.
+- Verify generic payload contracts, rejection of unchecked field access, and
+  exhaustive matching. Preserve exception tracebacks and notes in error payloads;
+  callers explicitly raise from a stored exception when chaining is needed.
+- Prefer exceptions for propagation and domain outcomes for failures callers
+  inspect or collect. Present generic Result as an optional lesson rather than
+  the default for every fallible function, including in agent and skill guidance.
+- Synchronize the manifest and lockfile at `0.5.0`; verify 220 tests on Python 3.11.
+
 ## [0e98f80](https://github.com/Red-Eyed/rustic-python/commit/0e98f80af42bbb940aa0374c41242f64353fc1bc) — 2026-09-26
 
 **Dynamic attribute access policy — 0.4.1**
