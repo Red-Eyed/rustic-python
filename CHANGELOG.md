@@ -2,6 +2,19 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [0e98f80](https://github.com/Red-Eyed/rustic-python/commit/0e98f80af42bbb940aa0374c41242f64353fc1bc) — 2026-09-26
+
+**Dynamic attribute access policy — 0.4.1**
+
+- Restrict `getattr`, `setattr`, `hasattr`, `delattr`, and equivalent reflection
+  in application logic; recommend declared fields, protocols, variants, and typed
+  registries instead.
+- Explain documented exceptions for unavoidable integration boundaries and tests
+  that deliberately exercise dynamic behavior. Identify the restriction as design
+  and review guidance rather than a static guarantee.
+- Include the policy in the boundary chapter, checklist, agent guide, and portable
+  skill; update the project and lockfile version to `0.4.1`.
+
 ## [5fed7b8](https://github.com/Red-Eyed/rustic-python/commit/5fed7b83804dfa1a8fdc998fab28568119f877a7) — 2026-09-26
 
 **Precise application boundaries — 0.4.0**
