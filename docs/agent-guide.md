@@ -12,9 +12,12 @@ and what to avoid before handing off a change. Apply only the relevant items.
    the representation should prevent.
 2. Keep required identity and schema fields required. Use typed variants for real
    alternatives and reason-carrying absence for domain values.
-   For generic success/failure containers, use returns' `Result`, `Success`, and
-   `Failure`; do not implement custom `Ok`/`Err`/`Result` classes. Check the variant
-   before unwrapping and do not claim unwrapping is statically safe.
+   Prefer exceptions for failure propagation. Use explicit domain outcomes when
+   callers need to inspect or collect failures; use the small custom `Result`
+   union only when generic success/failure improves the contract. Its `Ok[T]` and
+   `Err[E]` variants are frozen dataclasses. Use structural pattern matching
+   and `assert_never`; avoid a shared result base class, third-party result
+   packages, and unchecked unwrap methods.
 3. Annotate function boundaries and structured records. Preserve generic
    relationships. Keep `Any` and `object` out of application APIs. Parse serialized inputs directly
    with Pydantic; contain unavoidable unknown library values inside a small adapter

@@ -28,18 +28,20 @@ to the lesson explaining its tradeoffs and verified examples.
 
 ## Handle outcomes and alternatives
 
-- [ ] **Do:** use returns' `Result`, `Success`, and `Failure` when callers need to
-  inspect, route, or collect expected failures. **Avoid:** custom generic
-  `Ok`/`Err` containers or replacing useful ordinary exceptions without a reason.
+- [ ] **Do:** prefer exceptions for propagation and explicit domain outcomes for
+  failures callers need to inspect, route, or collect. Use the small `Ok[T] | Err[E]`
+  union only when generic success/failure adds value. **Avoid:** wrapping every
+  fallible operation, forwarding unchanged errors through many layers, or building
+  a result framework.
   [Errors and absence](errors-and-absence.md)
-- [ ] **Do:** check the success or failure variant before extracting its payload.
-  **Avoid:** unchecked `.unwrap()` or `.failure()`, discarded outcomes, or claiming
-  that a result return type proves the function cannot raise.
+- [ ] **Do:** extract payloads through structural pattern matching on the variant.
+  **Avoid:** unchecked unwrap helpers, discarded outcomes, or claiming that a
+  result return type proves the function cannot raise.
   [Result handling](errors-and-absence.md#make-expected-failures-explicit)
 - [ ] **Do:** dispatch with `match` and use `assert_never` for statically closed
-  unions. **Avoid:** catch-all branches that silently accept new alternatives, or
-  claiming `returns.Result` is a closed union whose exhaustiveness is proved this way.
-  [Data modeling](data-modeling.md), [Result limits](errors-and-absence.md)
+  unions, including `Result`. **Avoid:** catch-all branches that silently accept
+  new alternatives or replacing a closed union with an open class hierarchy.
+  [Data modeling](data-modeling.md), [Result handling](errors-and-absence.md)
 - [ ] **Do:** preserve a meaningful absence reason and distinguish missing data
   from valid zero or empty values. **Avoid:** truthiness checks for presence,
   unexplained domain `None`, or zero as a substitute for an undefined metric.

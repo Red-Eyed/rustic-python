@@ -99,9 +99,9 @@ feedback mechanism; it does not make Python execution itself faster.
 
 Two limits are especially easy to miss. First, `Any`, casts, suppressions, and
 dynamic loading can bypass static checks; a precise-looking return annotation
-does not establish a runtime fact. Second, even a typed library can admit unsafe
-operations: this repository tests that Expression's `.ok` access on an error value
-is checker-accepted but raises at runtime.
+does not establish a runtime fact. Second, valid types do not ensure that values
+satisfy an operation's preconditions: the generic `first` helper type-checks for
+an empty batch but raises `ValueError` at runtime.
 
 Types also do not establish correct gradients, absence of data leakage, good labels,
 numerical stability, race freedom, or resource ownership. Those need other evidence.

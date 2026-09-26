@@ -3,8 +3,8 @@
 [Project overview and reading path](../README.md)
 
 The guide and all examples target **Python 3.11+**. Boundary lessons use Pydantic
-and pydantic-settings; result examples use returns. Supplementary lessons use
-Expression and more-itertools.
+and pydantic-settings; result examples use independent frozen dataclasses and a
+union alias. The supplementary iterator lesson uses more-itertools.
 The lockfile pins the tested environment. Small tuples stand in for model outputs and feature vectors so the
 lessons do not require installing a GPU framework. They are not proposed training
 implementations.

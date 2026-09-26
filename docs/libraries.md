@@ -3,98 +3,26 @@
 [Project overview and reading path](../README.md)
 
 Pydantic and pydantic-settings are the guide's standard boundary tools.
-Small local types explain internal contracts. In application code, established
-libraries can avoid rebuilding result combinators, iterator utilities, and schema
-validators. Choose the dependency for the problem it solves, and verify the actual
-API path with Pyrefly. A library advertising type hints is not proof that every
-operation preserves types or rejects misuse.
+Small local types explain internal contracts. Use established libraries for
+iterator utilities and schema validation, and verify the actual API path with
+Pyrefly. A library advertising type hints does not prove that every operation
+preserves types or rejects misuse.
 
 | Need | Library to consider | What it contributes | What remains outside its guarantee |
 | --- | --- | --- | --- |
-| Expected success/failure outcomes | [returns](https://returns.readthedocs.io/en/latest/pages/result.html) | `Result`, `Success`, `Failure`, and composition | Unchecked unwrapping can raise; mypy-plugin guarantees do not transfer to Pyrefly |
-| Reusable success/failure and optional-value composition | [Expression](https://expression.readthedocs.io/en/stable/guides/getting-started.html) | `Result`, `Option`, and composition helpers | Not every variant access is statically guarded |
 | Batching and iterator transformations | [more-itertools](https://more-itertools.readthedocs.io/en/stable/) | Reusable iterable algorithms | Batch length, exhaustion, and buffering remain runtime concerns |
 | Required boundary validation and SDK payloads | [Pydantic](https://docs.pydantic.dev/latest/concepts/strict_mode/) | Models and `TypeAdapter` with an explicit coercion policy | Runtime validation does not make arbitrary incoming data statically safe |
+| Environment configuration and CLIs | [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) | Typed settings and argument models | Source precedence and coercion need an explicit policy |
 
-**Verified here:** returns 0.29.0, Pydantic 2.13.5, pydantic-settings 2.15.0, Expression 5.7.0,
-and more-itertools 11.1.0. The lockfile records the exact environment; manifest
-requirements use lower bounds. Expression and more-itertools are optional design
-choices, while boundary validation examples use Pydantic consistently.
+**Verified here:** Pydantic 2.13.5, pydantic-settings 2.15.0, and more-itertools
+11.1.0. The lockfile records the exact environment; manifest requirements use lower
+bounds. more-itertools is an optional design choice, while boundary validation
+examples use Pydantic consistently.
 
-Use **returns** for result containers rather than defining custom `Ok`/`Err`/`Result`
-types. The [errors lesson](errors-and-absence.md) demonstrates parsing, handling
-both outcomes, and mapping successful values with runnable examples. Expression
-below is an optional comparison for projects already using its functional APIs.
-
-## Expression: use composition, understand variant access
-
-For projects already using Expression, shared
-`map`/`bind` operations are clearer than repeated dispatch. `map` transforms a
-success; `bind` composes a step that itself returns a result. Explicitly specifying
-both generic arguments at construction keeps the success and error contracts
-visible. See the [Result API](https://expression.readthedocs.io/en/stable/reference/result.html).
-
-[Source](../examples/expression_results.py)
-
-```python
-"""Compose expected failures using Expression's typed Result operations."""
-
-from dataclasses import dataclass
-from typing import Annotated
-
-from expression import Result
-from pydantic import Field, TypeAdapter, ValidationError
-
-LABEL = TypeAdapter[int](Annotated[int, Field(ge=0)])
-
-
-@dataclass(frozen=True, slots=True)
-class InvalidLabel:
-    """Preserve why a dataset label could not be parsed."""
-
-    reason: str
-
-
-def parse_label(raw: str) -> Result[int, InvalidLabel]:
-    """Return a nonnegative label or a typed error for malformed input."""
-    try:
-        value = LABEL.validate_python(raw)
-    except ValidationError:
-        return Result[int, InvalidLabel].Error(
-            InvalidLabel("not a nonnegative integer")
-        )
-    return Result[int, InvalidLabel].Ok(value)
-
-
-def label_name(value: int) -> str:
-    """Render a successfully parsed class index."""
-    return f"class {value}"
-
-
-def describe_error(error: InvalidLabel) -> str:
-    """Render a parse failure without assigning it a success value."""
-    return f"rejected: {error.reason}"
-
-
-parsed = parse_label("7")
-rendered: Result[str, InvalidLabel] = parsed.map(label_name)
-description: str = rendered.default_with(describe_error)
-# rejected[bad-assignment]: wrong: Result[str, InvalidLabel] = parsed
-```
-
-**Static guarantee demonstrated:** mapping the integer label to text preserves the
-error type and changes the success type. Assigning the original integer result to
-`Result[str, InvalidLabel]` is rejected.
-
-**Important limit verified by our tests:** Pyrefly accepts `.ok` on an Expression
-`Error` result, but that access raises `AttributeError` at runtime. Do not assume
-library containers force callers to check the variant before accessing it. Use
-documented handling operations. The returns lesson likewise tests unchecked
-unwrapping as a runtime failure, not a rejected static operation.
-
-An `Option` is useful for ordinary presence/absence. Where the reason matters,
-keep a reason-carrying variant or a `Result` error instead. Callback exceptions
-still require the explicit boundary policy from the third-party adapter lesson.
+Result handling needs no third-party package in this guide. The
+[errors lesson](errors-and-absence.md) uses two frozen dataclass variants and a
+closed union, with structural pattern matching and exhaustive handling. Keep that
+representation small instead of growing a functional-programming framework.
 
 ## more-itertools: preserve element types, specify stream policy
 
@@ -177,12 +105,9 @@ example plus a misuse that must fail under this project's actual checker. Check
 inferred output types, failure behavior, and lazy evaluation. Do not treat a clean
 run that inferred `Any` as evidence of compatibility.
 
-Some libraries depend on checker-specific extensions. For example, `returns`
-documents a mypy plugin for parts of its typing behavior; that is not evidence
-those guarantees transfer to Pyrefly. This guide verifies the demonstrated
-constructors, typed accessors, and mapping under Pyrefly; validate additional
-decorators and composition helpers before relying on their inferred types.
-[returns plugin documentation](https://returns.readthedocs.io/en/latest/pages/contrib/mypy_plugins.html).
+Checker-specific plugins do not establish guarantees under another checker.
+Validate constructors, accessors, decorators, and composition helpers with Pyrefly
+before relying on their inferred types. Keep the checked API surface small.
 
 Keep optional recommendations separate from required example dependencies. Do not
 install the entire table into every application, and do not invent a custom version

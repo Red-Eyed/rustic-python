@@ -31,8 +31,11 @@ claim the latest revision without a successful check.
    current task needs; do not load the whole book.
 3. Choose the simplest representation that preserves the required contract.
    Keep native tensors and arrays; wrappers need a concrete boundary benefit.
-   Use returns' Result, Success, and Failure for generic result containers, not
-   custom Ok/Err/Result classes. Unchecked unwrap can raise; handle variants first.
+   Prefer exceptions for failure propagation; use explicit domain outcomes when
+   callers must inspect or collect failures. Generic success/failure may use the
+   small custom Ok/Err union, but is not the default for every fallible function.
+   Handle variants with structural pattern matching and assert_never; avoid
+   a shared result base class, third-party result packages, and unchecked unwrap.
 4. Keep `Any` and `object` out of application APIs. Parse serialized external data
    directly with Pydantic; contain unknown SDK values inside adapters that return
    precise types. Load environment configuration with

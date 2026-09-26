@@ -168,6 +168,17 @@ def test_new_variant_breaks_incomplete_match(pyrefly: Path, tmp_path: Path) -> N
     assert_rejected(result, {(line, "bad-argument-type")})
 
 
+def test_new_result_variant_requires_handling(pyrefly: Path, tmp_path: Path) -> None:
+    """Extending the result union must invalidate the existing exhaustive handler."""
+    source = (ROOT / "examples" / "explicit_results.py").read_text()
+    original = "Result: TypeAlias = Ok[T] | Err[E]"
+    assert source.count(original) == 1
+    changed = source.replace(original, original + " | str")
+    line = changed.splitlines().index("            assert_never(result)") + 1
+    result = check_source(pyrefly, tmp_path, changed)
+    assert_rejected(result, {(line, "bad-argument-type")})
+
+
 @pytest.fixture
 def unguarded_mapping_source() -> str:
     """Keep the historical mapping defect isolated from application examples."""
