@@ -2,6 +2,19 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [b9108ac](https://github.com/Red-Eyed/rustic-python/commit/b9108aca14920494b8273c03338f9898f436995a) — 2026-09-26
+
+**Automatic skill freshness checks**
+
+- Instruct installed skills to check GitHub before each task and refresh
+  unchanged managed copies, then reread the updated guide.
+- Include the source commit, dirty-build flag, and file hashes in skill bundles.
+- Use a commit-pinned repository snapshot when the published ZIP lags behind;
+  preserve local edits and report when offline freshness cannot be verified.
+- Document backups, explicit pins, and the one-time update needed by older
+  installations that lack refresh instructions.
+- Verify bundle provenance and edit detection; update the version to `0.3.1`.
+
 ## [06e8ad3](https://github.com/Red-Eyed/rustic-python/commit/06e8ad32d14e11a6bfec2c38907e1c66bbbd0317) — 2026-09-26
 
 **Pydantic boundaries, settings, and inference contracts**
