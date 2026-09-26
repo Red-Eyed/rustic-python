@@ -28,11 +28,11 @@ to the lesson explaining its tradeoffs and verified examples.
 
 ## Handle outcomes and alternatives
 
-- [ ] **Do:** prefer exceptions for propagation and explicit domain outcomes for
-  failures callers need to inspect, route, or collect. Use the small `Ok[T] | Err[E]`
-  union only when generic success/failure adds value. **Avoid:** wrapping every
-  fallible operation, forwarding unchanged errors through many layers, or building
-  a result framework.
+- [ ] **Do:** declare expected failures callers should handle as typed outcomes;
+  use the small `Ok[T] | Err[E]` union when generic success/failure fits.
+  **Avoid:** hiding expected alternatives in an exception-only API, converting
+  programming defects into routine errors, or claiming Result prevents every
+  possible exception. Keep the representation small.
   [Errors and absence](errors-and-absence.md)
 - [ ] **Do:** extract payloads through structural pattern matching on the variant.
   **Avoid:** unchecked unwrap helpers, discarded outcomes, or claiming that a

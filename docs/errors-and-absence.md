@@ -7,24 +7,38 @@
 **Mistake:** a caller must distinguish accepted and rejected labels, but the
 parser returns `-1` or an empty dictionary that hides the rejection reason.
 
-Prefer ordinary exceptions when failure should propagate to a caller that can
-handle it. Use explicit outcomes when callers need to inspect, route, or collect
-failures as part of normal control flow. A generic result is one optional
-representation, not the default return type for every fallible function.
+Use typed outcomes for expected failures callers should handle. A signature such
+as `Result[Config, ReadError | InvalidConfig]` makes those alternatives visible to
+the checker; a plain `Config` return annotation does not declare raised exceptions.
+Callers must narrow the result before consuming its success payload. Domain-specific
+unions can express the same requirement without generic success/error containers.
+
+The purpose is to turn incorrect use into a checker error before execution.
+For each proposed result API, identify the invalid operation it should reject:
+reading a success payload before narrowing, confusing payload types, or forgetting
+a variant. Verify those failures with the actual checker. Merely wrapping a return
+value without making misuse harder does not satisfy that goal.
 
 For example, an importer processing 1,000 rows may collect 12 rejected records
-while accepting the rest. Typed outcomes help express that policy. If application
-startup cannot load its configuration, a validation exception propagating to the
-entry point is usually simpler than forwarding an `Err` through every layer.
+while accepting the remaining 988. Typed outcomes make both paths explicit, so
+rejected rows cannot be mistaken for parsed values. A configuration loader can
+likewise return distinct read and validation errors for the caller to handle.
 
 The maintainers of the archived `result` library questioned the practical fit of
 this programming style in Python's ecosystem. That is a useful caution against
 adopting it wholesale, not evidence that all explicit domain alternatives are
 unhelpful. See [the maintenance discussion](https://github.com/rustedpy/result/issues/201#issuecomment-2559270994).
-In Python, converting exceptions into results does not prevent other exceptions
-from escaping, and manually forwarding unchanged errors can add noise. Keep
-exception handling at the layer that can decide what to do; introduce a result
-only when its typed alternatives improve that decision.
+The useful goal here is a checked contract for expected failures, not imitation
+of a functional library. Keep only the variants and handling the application needs.
+
+**A result annotation is not a no-throw guarantee.** Python's type system does not
+track all exceptions an operation can raise. At an integration boundary, catch
+the specific expected exceptions and convert them to declared error variants.
+Unexpected exceptions can still propagate, including bugs in the implementation.
+Do not catch every exception merely to claim that the signature is exhaustive:
+that can disguise programming defects as routine domain outcomes. A deliberately
+broad SDK adapter needs the separate policy described in
+[third-party boundaries](third-party-boundaries.md#why-catch-exception-here).
 
 Domain-specific alternatives such as `AcceptedRow | RejectedRow` can communicate
 more than generic success/failure. Use `Result[T, E]` when the shared success/error
@@ -138,8 +152,9 @@ prevent normal field reassignment but do not freeze mutable payloads or enforce
 ownership. Annotations do not validate dynamically supplied constructor arguments.
 
 The implementation is a self-contained lesson, not a shared framework for the
-other examples. Prefer ordinary exceptions when propagation is clearer, and use
-domain-specific variants when success/failure does not capture all alternatives.
+other examples. Ordinary exceptions remain appropriate when propagation is the
+chosen contract rather than a failure callers must inspect. Use domain-specific
+variants when success/failure does not capture all alternatives.
 
 ## Know where a failure happened
 

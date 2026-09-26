@@ -27,13 +27,16 @@ claim the latest revision without a successful check.
 ## Workflow
 
 1. Identify the operation, the mistake to prevent, and the relevant boundary.
+   Prefer designs that make the mistake a type-checking error before execution;
+   verify the rejected call or access, not just that valid code passes.
 2. Read the relevant chapter below and its linked examples. Read only what the
    current task needs; do not load the whole book.
 3. Choose the simplest representation that preserves the required contract.
    Keep native tensors and arrays; wrappers need a concrete boundary benefit.
-   Prefer exceptions for failure propagation; use explicit domain outcomes when
-   callers must inspect or collect failures. Generic success/failure may use the
-   small custom Ok/Err union, but is not the default for every fallible function.
+   Use typed outcomes for expected failures callers should handle. Use the small
+   custom Ok/Err union when generic success/failure fits. Convert specific expected
+   exceptions at boundaries; leave programming defects visible. Result makes known
+   alternatives checkable but does not prove that unexpected exceptions cannot escape.
    Handle variants with structural pattern matching and assert_never; avoid
    a shared result base class, third-party result packages, and unchecked unwrap.
 4. Keep `Any` and `object` out of application APIs. Parse serialized external data
