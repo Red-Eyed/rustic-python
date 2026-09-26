@@ -34,6 +34,11 @@ to the lesson explaining its tradeoffs and verified examples.
   programming defects into routine errors, or claiming Result prevents every
   possible exception. Keep the representation small.
   [Errors and absence](errors-and-absence.md)
+- [ ] **Do:** reserve exceptions for unexpected failures and broken internal
+  assumptions; translate anticipated library errors at the application boundary.
+  **Avoid:** treating an expected failure as exceptional merely because the caller
+  chooses to abort rather than recover.
+  [Failure contracts](errors-and-absence.md#make-expected-failures-explicit)
 - [ ] **Do:** extract payloads through structural pattern matching on the variant.
   **Avoid:** unchecked unwrap helpers, discarded outcomes, or claiming that a
   result return type proves the function cannot raise.

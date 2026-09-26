@@ -12,7 +12,9 @@ and what to avoid before handing off a change. Apply only the relevant items.
    the representation should prevent.
 2. Keep required identity and schema fields required. Use typed variants for real
    alternatives and reason-carrying absence for domain values.
-   Use typed outcomes for expected failures callers should handle. Catch specific
+   Expected failures are data; reserve exceptions for unexpected failures and
+   violated internal assumptions. Declare anticipated failures as typed outcomes,
+   even when the caller will stop rather than recover. Catch specific
    expected exceptions at boundaries; do not disguise programming defects as
    routine errors or claim that Result prevents all exceptions. Use the custom
    `Result` union when generic success/failure fits the contract. Its `Ok[T]` and
@@ -58,8 +60,9 @@ and what to avoid before handing off a change. Apply only the relevant items.
     keep shared setup in the nearest `conftest.py`, and parametrize repeated cases.
     Assert observable behavior; do not call fixtures manually or hide the operation
     under test inside a result fixture.
-13. State relevant edge cases and acceptable simplifications. Prefer plain values,
-    functions, and standard exceptions when they express the contract. Escalate to
+13. State relevant edge cases and acceptable simplifications. Prefer plain values
+    and functions where they express the contract. Reserve exceptions for unexpected
+    failures and broken assumptions; keep expected failures in typed outcomes. Escalate to
     wrappers, variants, or protocols for a demonstrated need, not resemblance to
     Rust. Use the [decision guide](practical-choices.md), and never simplify away a
     failure, absence reason, or data-handling policy that callers need.

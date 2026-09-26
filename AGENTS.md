@@ -11,7 +11,9 @@ Rust's ownership, borrow checking, or scientific correctness guarantees.
 
 Pyrefly is the static type checker; Ruff checks and formats code; uv manages the
 environment and lockfile. pytest verifies runtime behavior and the guide's static
-claims. Use typed outcomes for expected failures callers should handle; a Result
+claims. Expected failures are data: use typed outcomes even when callers will stop
+rather than recover. Reserve exceptions for unexpected failures and violated
+internal assumptions; convert anticipated library errors at boundaries. A Result
 annotation does not prove that unexpected exceptions cannot escape. The Result lesson
 uses small custom frozen Ok and Err dataclasses with a union alias, not a shared
 result base class or a third-party result package. Handle variants

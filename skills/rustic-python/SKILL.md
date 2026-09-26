@@ -33,7 +33,9 @@ claim the latest revision without a successful check.
    current task needs; do not load the whole book.
 3. Choose the simplest representation that preserves the required contract.
    Keep native tensors and arrays; wrappers need a concrete boundary benefit.
-   Use typed outcomes for expected failures callers should handle. Use the small
+   Expected failures are data; reserve exceptions for unexpected failures and
+   violated internal assumptions. Use typed outcomes for anticipated failures,
+   even when the caller will stop rather than recover. Use the small
    custom Ok/Err union when generic success/failure fits. Convert specific expected
    exceptions at boundaries; leave programming defects visible. Result makes known
    alternatives checkable but does not prove that unexpected exceptions cannot escape.

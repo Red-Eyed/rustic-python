@@ -37,7 +37,8 @@ full_batches_only = batch_count(5, batch_size=2, drop_last=True)
 ```
 
 **What stays simple:** ordinary integers, one function, one keyword-only policy
-flag, and normal exceptions. The boolean selects a calculation policy; it does
+flag, and exceptions for violated input preconditions. This helper operates on
+internal counts, not raw user input. The boolean selects a calculation policy; it does
 not hide a lifecycle with different permitted operations. No protocol is needed
 because this helper has no substitution requirement.
 
@@ -49,7 +50,9 @@ expected. The [tests](../tests/test_practical_defaults.py) exercise these cases.
 **What this does not guarantee:** a loader may filter records, shard data, or use a
 different sampling policy. This function counts according to its inputs; it does
 not predict every loader's behavior. Exceptions also do not appear in its return
-type. That tradeoff is acceptable when invalid arguments should abort the operation.
+type. Treat invalid internal counts as a broken assumption; if invalid values are
+anticipated external input, validate them at the boundary and return a typed
+failure. Choosing to abort does not make an expected failure exceptional.
 
 ## Acceptable simplifications, and when to stop simplifying
 
@@ -59,7 +62,7 @@ type. That tradeoff is acceptable when invalid arguments should abort the operat
 | An ordinary function | There is no resource lifecycle or configurable object state to manage | Precise arguments, return type, and failure behavior | State or interchangeable implementations become a real concern |
 | A concrete dependency | There is one implementation and callers do not need substitution | Keep the dependency at the appropriate layer | A second backend or independently injected implementation must satisfy the same contract |
 | A typed callable | The extension point is one operation | Its argument/return contract and error policy | Implementations need several related operations or stateful capabilities |
-| `ValueError` / `TypeError` | Invalid input should stop the current operation | Specific, documented exceptions and a deliberate catch boundary | Callers routinely need to collect, recover from, or route multiple failure outcomes |
+| `ValueError` / `TypeError` | An internal precondition is unexpectedly violated | Keep the programming defect visible; document the precondition | Invalid input is an anticipated external or domain case; return a typed outcome at the application boundary |
 | A local `None` from a standard API | It means one local condition, such as a failed lookup, and is handled immediately | An explicit presence check and a typed value after the check | Absence crosses the domain boundary or callers need its reason |
 | A local dictionary | It is a temporary literal or a true homogeneous mapping | No concealed record schema escaping to other helpers | Fixed keys form a shared record; use a `TypedDict`, dataclass, or validated model |
 | A typed field plus a guard | The invalid state is contained within a short operation | Check it before the operation that requires the value | Many callers must repeatedly remember the same state restriction |
@@ -130,8 +133,8 @@ Suppose an SDK returns a record with `confidence: "0.8"`.
    when the transport provides JSON text, parse that text directly with Pydantic.
 2. Decide whether the SDK contract permits numeric strings. Do not let a convenience
    validator silently make this product decision.
-3. If strings are forbidden, return a schema failure or raise the documented
-   validation exception. If permitted, parse once, then validate range and finiteness.
+3. If strings are forbidden, translate the validator's rejection into a typed
+   schema failure. If permitted, parse once, then validate range and finiteness.
 4. Expose the validated value using the simplest useful domain record. Do not pass
    a loose dictionary onward just to avoid defining that record.
 5. Test the accepted form and nearby rejected forms: malformed text, NaN, missing
