@@ -1,0 +1,30 @@
+[project]
+name = "rustic-python"
+version = "0.1.1"
+description = "A guide to Rust-inspired Python types, with an ML and data science bias"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Vadym Stupakov", email = "vadim.stupakov@gmail.com" }]
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pyrefly==1.3.1",
+    "pytest>=8.4,<10",
+    "ruff==0.16.9",
+]
+examples = [
+    "expression==5.7.0",
+    "more-itertools==11.1.0",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev", "examples"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-config --strict-markers"
+xfail_strict = true
