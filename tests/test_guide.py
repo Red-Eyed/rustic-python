@@ -170,14 +170,17 @@ def test_new_variant_breaks_incomplete_match(pyrefly: Path, tmp_path: Path) -> N
 
 @pytest.fixture
 def unguarded_mapping_source() -> str:
-    """Remove only the workaround to reproduce the pinned checker's limitation."""
-    source = (ROOT / "examples" / "checker_limits.py").read_text()
-    guard = (
-        "    if not isinstance(payload, Mapping):\n"
-        '        raise ValueError("expected a mapping")\n'
-    )
-    assert source.count(guard) == 1
-    return source.replace(guard, "")
+    """Keep the historical mapping defect isolated from application examples."""
+    return '''def record_name(payload: object) -> str:
+    """Reproduce mapping-pattern narrowing on unknown input in Pyrefly 1.3.1."""
+    match payload:
+        case {"name": str(name)}:
+            return name.strip()
+    raise ValueError("expected a text name field")
+
+
+name = record_name({"name": " training "})
+'''
 
 
 def test_boolean_predicate_needs_a_narrowing_contract(

@@ -27,9 +27,9 @@ Task: TypeAlias = Annotated[Classification | Regression, Field(discriminator="ki
 TASK = TypeAdapter[Task](Task)
 
 
-def parse_task(payload: object) -> Task:
-    """Select the tagged schema and validate its fields, or raise ValidationError."""
-    return TASK.validate_python(payload)
+def parse_task(payload: str) -> Task:
+    """Parse tagged JSON and validate its fields, or raise ValidationError."""
+    return TASK.validate_json(payload)
 
 
 def loss_name(task: Task) -> str:
@@ -43,7 +43,8 @@ def loss_name(task: Task) -> str:
             assert_never(task)
 
 
-task = parse_task({"kind": "classification", "num_classes": 10})
+task = parse_task('{"kind": "classification", "num_classes": 10}')
 loss = loss_name(task)
 # rejected[missing-argument,unexpected-keyword]: Classification(huber_delta=1.0)
 # rejected[missing-argument,unexpected-keyword]: Regression(num_classes=10)
+# rejected[bad-argument-type]: parse_task({})

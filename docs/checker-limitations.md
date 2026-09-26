@@ -23,7 +23,7 @@ meaning simply to fit an inference limitation.
 | Information lost through a helper | Does the signature communicate what the implementation establishes? | Add a useful annotation, `TypeGuard`, overload, or generic relationship |
 | Unsupported or buggy inference | Does a small valid-Python reproducer fail with this exact checker/configuration? | A clear local guard or intermediate binding; otherwise a scoped workaround |
 | Missing or inaccurate dependency types | What does the installed API actually accept and return? | Correct local stubs or a small adapter, based on evidence |
-| Dynamic input that is genuinely unknown | Has the value been validated at all? | Receive it as `object` and validate before exposing a domain value |
+| Dynamic input that is genuinely unknown | Has the value been validated at all? | Parse serialized data with Pydantic; contain unknown SDK values inside an adapter |
 | A checker-accepted runtime failure | Which assumption is not enforced by the type system? | Runtime validation or a behavioral test; do not manufacture a static guarantee |
 
 First reproduce the CLI result in the project environment. Check the interpreter,
@@ -39,42 +39,30 @@ test performed inside it. When a reusable predicate really establishes a type,
 `TypeGuard` makes that contract explicit. For a single use, an inline `isinstance`
 check is often simpler than introducing a predicate at all.
 
-The same module also contains the mapping-pattern workaround discussed below.
+The example narrows a known `str | int` union. Arbitrary external records belong
+at a Pydantic boundary; the mapping-pattern defect below is a separate reproduction.
 
 [Source](../examples/checker_limits.py)
 
 ```python
 """Express supported narrowing without casts or project-wide suppressions."""
 
-from collections.abc import Mapping
 from typing import TypeGuard
 
 
-def is_nonempty_text(value: object) -> TypeGuard[str]:
+def is_nonempty_text(value: str | int) -> TypeGuard[str]:
     """Identify strings with visible content; promise only str to the checker."""
     return isinstance(value, str) and bool(value.strip())
 
 
-def normalize_name(value: object) -> str:
+def normalize_name(value: str | int) -> str:
     """Strip a validated name; raise ValueError for other values."""
     if is_nonempty_text(value):
         return value.strip()
     raise ValueError("name must be nonempty text")
 
 
-def record_name(payload: object) -> str:
-    """Read a text name from a mapping; reject other structures with ValueError."""
-    # Pyrefly 1.3.1 needs explicit Mapping narrowing before this pattern.
-    # tests/test_guide.py reproduces the limitation for review during upgrades.
-    if not isinstance(payload, Mapping):
-        raise ValueError("expected a mapping")
-    match payload:
-        case {"name": str(name)}:
-            return normalize_name(name)
-    raise ValueError("expected a text name field")
-
-
-name = record_name({"name": " training "})
+name = normalize_name(" training ")
 # rejected[bad-assignment]: count: int = name
 ```
 
@@ -89,20 +77,21 @@ do not use an always-true guard as a disguised cast.
 
 ## Example 2: valid Python rejected by the pinned checker
 
-In Pyrefly **1.3.1**, removing the explicit `Mapping` guard from `record_name`
-produces `not-callable` at the mapping pattern, referring to `__getitem__` and
-`Never`. The unguarded Python code still executes successfully for a valid mapping.
-The test suite verifies both facts in isolation.
+In Pyrefly **1.3.1**, matching a mapping against an `object` parameter produces
+`not-callable`, referring to `__getitem__` and `Never`. The same Python code
+executes successfully for a valid mapping. A minimal source string in
+`tests/test_guide.py` verifies both facts in a temporary module. This deliberately
+unknown parameter is a checker reproduction, not a recommended application API.
 
 This is observed behavior of the pinned release, not a claim about every Pyrefly
-version or a reported upstream issue number. The production example uses the small
-guard, because it is readable and preserves the intended accepted/rejected inputs.
-It does not need `Any`, a cast, a new class hierarchy, or a global error disable.
+version or a reported upstream issue number. Application examples use precise
+unions or Pydantic parsing instead. The reproduction remains isolated so it does
+not require weakening their types.
 
 The reproduction test deliberately expects the known diagnostic. If an upgrade
 fixes the checker, that test fails and prompts review: remove the limitation test
-or update it to require acceptance, then decide whether the guard still helps the
-reader. Do not restore a bug just to preserve the old expectation.
+or update it to require acceptance. Do not restore a bug just to preserve the old
+expectation.
 
 ## Example 3: the dependency stub is wrong
 
@@ -119,15 +108,16 @@ A stub can shadow a module's other type information, so preserve the API surface
 your application uses rather than accidentally deleting it from the checker's view.
 
 A local stub is appropriate for a known signature. If the SDK returns arbitrary
-JSON or undocumented shapes, declare the unknown result as `object` and validate
-it in an adapter. Claiming it returns a trusted domain record merely hides the
-uncertainty. Never edit installed files inside `.venv` as the project's durable fix.
+JSON text, parse it directly with Pydantic. For undocumented Python values, keep
+the unknown result inside a small adapter and immediately validate it. Claiming
+it returns a trusted domain record merely hides the uncertainty. Never edit
+installed files inside `.venv` as the project's durable fix.
 
 ## Example 4: a narrow suppression is sometimes cleaner
 
-If a local guard materially distorts an otherwise clear implementation, a documented
-line-level suppression can be preferable. Use the specific diagnostic code and
-keep the normal type annotations:
+For an unavoidable integration seam with a reproduced checker defect, a
+documented line-level suppression can be preferable to a distorted API. This
+patch illustrates the fallback on the isolated reproduction:
 
 ```diff
      match payload:
@@ -135,13 +125,13 @@ keep the normal type annotations:
 +        # Remove when the mapping-pattern regression accepts the unguarded source.
 +        # pyrefly: ignore[not-callable]
          case {"name": str(name)}:
-             return normalize_name(name)
+             return name.strip()
 ```
 
 The suite applies this fallback only to a temporary copy of the reproduction. It
 verifies that the specific diagnostic disappears, then adds an unrelated bad
-assignment and verifies that it still fails. The checked-in application example
-uses the guard instead.
+assignment and verifies that it still fails. The application example needs
+neither the unknown input nor a suppression.
 
 Pyrefly supports code-specific suppressions, and the project enables `unused-ignore`
 as an error so obsolete suppressions become visible. This is narrower than silencing

@@ -17,12 +17,13 @@ class DatasetMetadata(TypedDict):
 METADATA = TypeAdapter[DatasetMetadata](DatasetMetadata)
 
 
-def parse_metadata(payload: object) -> DatasetMetadata:
-    """Validate required fields; ignore extra keys or raise ValidationError."""
-    return METADATA.validate_python(payload)
+def parse_metadata(payload: str) -> DatasetMetadata:
+    """Parse JSON metadata; ignore extra keys or raise ValidationError."""
+    return METADATA.validate_json(payload)
 
 
-metadata = parse_metadata({"name": "cifar10", "num_classes": 10})
+metadata = parse_metadata('{"name": "cifar10", "num_classes": 10}')
 classes = metadata["num_classes"]
 # rejected[bad-typed-dict-key]: classes = metadata["class_count"]
 # rejected[bad-typed-dict-key]: broken: DatasetMetadata = {"name": "cifar10"}
+# rejected[bad-argument-type]: parse_metadata({})

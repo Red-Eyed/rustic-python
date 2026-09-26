@@ -1,9 +1,11 @@
 """Check boundary validation, settings sources, and plain inference records."""
 
+import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 from pydantic_settings import SettingsError
 
 from examples.immutable_config import Experiment
@@ -12,34 +14,50 @@ from examples.inference_boundary import (
     prepare_inference,
     scale_logits,
 )
-from examples.task_variants import Classification, Regression, loss_name, parse_task
+from examples.task_variants import (
+    Classification,
+    Regression,
+    Task,
+    loss_name,
+    parse_task,
+)
 from examples.third_party_boundary import (
     InvalidResponse,
     Prediction,
     PredictRequest,
-    parse_response,
+    _parse_response,
 )
-from examples.validated_records import parse_metadata
+from examples.validated_records import DatasetMetadata, parse_metadata
+
+
+@pytest.mark.parametrize("parser", [parse_metadata, parse_task, prepare_inference])
+@pytest.mark.parametrize("payload", ["", "{", "null", "[]", '"text"', "42"])
+def test_json_boundaries_reject_invalid_documents(
+    parser: Callable[[str], DatasetMetadata | Task | InferenceParameters], payload: str
+) -> None:
+    """Reject invalid syntax and nonrecord JSON before values enter the core."""
+    with pytest.raises(ValidationError):
+        parser(payload)
 
 
 @pytest.mark.parametrize("count", [True, "3", 3.0, -1])
-def test_metadata_requires_an_actual_integer(count: object) -> None:
+def test_metadata_requires_an_actual_integer(count: bool | str | float) -> None:
     """Pydantic strict validation must not normalize malformed class counts."""
     with pytest.raises(ValidationError):
-        parse_metadata({"name": "dataset", "num_classes": count})
+        parse_metadata(json.dumps({"name": "dataset", "num_classes": count}))
 
 
 @pytest.mark.parametrize("name", ["", "   ", 42])
-def test_metadata_requires_visible_text(name: object) -> None:
+def test_metadata_requires_visible_text(name: str | int) -> None:
     """Reject blank and nontext identifiers at the input boundary."""
     with pytest.raises(ValidationError):
-        parse_metadata({"name": name, "num_classes": 3})
+        parse_metadata(json.dumps({"name": name, "num_classes": 3}))
 
 
 @pytest.mark.parametrize(
     "features", [(), (float("nan"),), (float("inf"),), (True,), ("0.5",)]
 )
-def test_request_validates_feature_values(features: object) -> None:
+def test_request_validates_feature_values(features: tuple[float | str, ...]) -> None:
     """Unknown request values cannot bypass shape and finite-number checks."""
     with pytest.raises(ValidationError):
         PredictRequest.model_validate({"features": features})
@@ -47,7 +65,7 @@ def test_request_validates_feature_values(features: object) -> None:
 
 def test_response_rejects_extra_fields_and_hides_values() -> None:
     """Keep unexpected response data out of the schema and failure summary."""
-    response = parse_response(
+    response = _parse_response(
         {"label": "ok", "confidence": 0.5, "secret": "private-value"}
     )
     assert isinstance(response, InvalidResponse)
@@ -57,13 +75,13 @@ def test_response_rejects_extra_fields_and_hides_values() -> None:
 def test_response_revalidates_existing_model_instances() -> None:
     """A model created through an unchecked escape hatch is not trusted on entry."""
     unchecked = Prediction.model_construct(label="ok", confidence=2.0)
-    assert isinstance(parse_response(unchecked), InvalidResponse)
+    assert isinstance(_parse_response(unchecked), InvalidResponse)
 
 
 @pytest.mark.parametrize("confidence", [0, 1])
 def test_strict_float_accepts_integer_endpoints(confidence: int) -> None:
     """Document Pydantic's intentional integer-to-float numeric conversion."""
-    assert parse_response({"label": "ok", "confidence": confidence}) == Prediction(
+    assert _parse_response({"label": "ok", "confidence": confidence}) == Prediction(
         label="ok", confidence=float(confidence)
     )
 
@@ -120,7 +138,7 @@ def test_settings_report_malformed_json(
 
 def test_inference_receives_plain_records() -> None:
     """Keep validated configuration outside the numerical core's object graph."""
-    parameters = prepare_inference({"temperature": 2.0})
+    parameters = prepare_inference(json.dumps({"temperature": 2.0}))
     assert isinstance(parameters, InferenceParameters)
     assert isinstance(parameters, tuple)
     output = scale_logits((2.0, -2.0), parameters)
@@ -129,10 +147,10 @@ def test_inference_receives_plain_records() -> None:
 
 
 @pytest.mark.parametrize("temperature", [0, -1.0, float("nan"), True, "2.0"])
-def test_invalid_inference_options_stop_at_boundary(temperature: object) -> None:
+def test_invalid_inference_options_stop_at_boundary(temperature: float | str) -> None:
     """Reject invalid options before constructing the plain inference parameters."""
     with pytest.raises(ValidationError):
-        prepare_inference({"temperature": temperature})
+        prepare_inference(json.dumps({"temperature": temperature}))
 
 
 @pytest.mark.parametrize(
@@ -143,10 +161,10 @@ def test_invalid_inference_options_stop_at_boundary(temperature: object) -> None
     ],
 )
 def test_discriminator_selects_the_variant(
-    payload: object, expected: Classification | Regression
+    payload: JsonValue, expected: Classification | Regression
 ) -> None:
     """Tagged input selects a validated variant with an exhaustive downstream API."""
-    parsed = parse_task(payload)
+    parsed = parse_task(json.dumps(payload))
     assert parsed == expected
     assert loss_name(parsed) == loss_name(expected)
 
@@ -166,9 +184,9 @@ def test_discriminator_selects_the_variant(
     ],
 )
 def test_discriminated_union_rejects_invalid_payloads(
-    payload: object, error_kind: str
+    payload: JsonValue, error_kind: str
 ) -> None:
     """Missing tags, unknown variants, and mismatched fields fail at the boundary."""
     with pytest.raises(ValidationError) as failure:
-        parse_task(payload)
+        parse_task(json.dumps(payload))
     assert error_kind in {error["type"] for error in failure.value.errors()}

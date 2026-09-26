@@ -16,7 +16,9 @@ and what to avoid before handing off a change. Apply only the relevant items.
    `Failure`; do not implement custom `Ok`/`Err`/`Result` classes. Check the variant
    before unwrapping and do not claim unwrapping is statically safe.
 3. Annotate function boundaries and structured records. Preserve generic
-   relationships. Do not introduce `Any`, casts, or ignores merely to silence
+   relationships. Keep `Any` and `object` out of application APIs. Parse serialized inputs directly
+   with Pydantic; contain unavoidable unknown library values inside a small adapter
+   that immediately returns precise types. Do not introduce casts or ignores to silence
    unexplained diagnostics. For a verified limitation, use the smallest justified
    workaround described in [checker limitations](checker-limitations.md).
 4. Validate external schemas with Pydantic at the boundary and load environment

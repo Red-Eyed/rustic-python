@@ -33,7 +33,9 @@ claim the latest revision without a successful check.
    Keep native tensors and arrays; wrappers need a concrete boundary benefit.
    Use returns' Result, Success, and Failure for generic result containers, not
    custom Ok/Err/Result classes. Unchecked unwrap can raise; handle variants first.
-4. Validate external schemas with Pydantic and load environment configuration with
+4. Keep `Any` and `object` out of application APIs. Parse serialized external data
+   directly with Pydantic; contain unknown SDK values inside adapters that return
+   precise types. Load environment configuration with
    pydantic-settings. Build CLIs with its CliApp and typed argument models instead
    of hand-written argparse. Use discriminated unions for tagged payloads. Keep validation
    outside compiled inference; pass tensors and plain NamedTuple/TypedDict records

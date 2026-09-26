@@ -15,7 +15,7 @@ The boundary needs three separate responsibilities:
 2. **Invoke the dependency** in a small exception boundary. Translate ordinary SDK
    exceptions into an explicit outcome, preserving their cause.
 3. **Validate the unknown response** into a domain value. Until validation succeeds,
-   the result is `object`, regardless of what a vendor's documentation claims.
+   keep the unknown result inside the adapter, regardless of vendor annotations.
 
 For example, a response with confidence `"0.8"`, `True`, `NaN`, or `1.1` must not
 quietly become a valid prediction. Pydantic validates finite confidence in
@@ -56,7 +56,11 @@ class VendorPayload(TypedDict):
     instances: list[float]
 
 
-VendorCall: TypeAlias = Callable[[VendorPayload], object]
+class VendorResponse(TypedDict):
+    """Describe only the demo SDK's response, without asserting validation."""
+
+    label: str
+    confidence: float
 
 
 @final
@@ -90,16 +94,27 @@ class InvalidResponse:
 
 
 PredictOutcome: TypeAlias = Prediction | CallFailed | InvalidResponse
+Predictor: TypeAlias = Callable[[PredictRequest], PredictOutcome]
 
 
-def bind_vendor(candidate: object) -> VendorCall:
-    """Wrap an unknown callable; raise TypeError for a noncallable dependency."""
+def bind_vendor(candidate: object) -> Predictor:
+    """Adapt a dynamic SDK callable to typed outcomes; reject noncallable bindings.
+
+    Only this integration seam accepts an unknown dependency. Callability cannot
+    prove its signature; argument mismatches become ordinary call failures.
+    """
     if not callable(candidate):
         raise TypeError("vendor predict must be callable")
 
-    def invoke(payload: VendorPayload) -> object:
-        """Keep the unknown result opaque; signature and SDK errors may propagate."""
-        return candidate(payload)
+    def invoke(request: PredictRequest) -> PredictOutcome:
+        """Call once with owned payload data and validate before returning."""
+        payload = encode_request(request)
+        try:
+            response: object = candidate(payload)
+        except Exception as error:
+            # Contain SDK failures, while leaving adapter defects visible.
+            return CallFailed(cause=error)
+        return _parse_response(response)
 
     return invoke
 
@@ -109,23 +124,12 @@ def encode_request(request: PredictRequest) -> VendorPayload:
     return {"instances": list(request.features)}
 
 
-def parse_response(payload: object) -> Prediction | InvalidResponse:
+def _parse_response(payload: object) -> Prediction | InvalidResponse:
     """Validate the SDK schema; return field errors without echoing input values."""
     try:
         return Prediction.model_validate(payload)
     except ValidationError as error:
         return InvalidResponse(str(error))
-
-
-def predict(request: PredictRequest, call: VendorCall) -> PredictOutcome:
-    """Call the SDK once; expose ordinary call failures and invalid responses."""
-    payload = encode_request(request)
-    try:
-        response = call(payload)
-    except Exception as error:
-        # Only the vendor call is inside this handler; adapter bugs must stay visible.
-        return CallFailed(cause=error)
-    return parse_response(response)
 
 
 def describe(outcome: PredictOutcome) -> str:
@@ -141,18 +145,19 @@ def describe(outcome: PredictOutcome) -> str:
             assert_never(outcome)
 
 
-def demo_vendor(payload: VendorPayload) -> object:
-    """Simulate a dictionary-based vendor that offers no useful output type."""
+def demo_vendor(payload: VendorPayload) -> VendorResponse:
+    """Simulate a dictionary-based vendor that has no validated response schema."""
     return {"label": "positive", "confidence": 0.8}
 
 
 request = PredictRequest(features=(0.2, 0.8))
 vendor = bind_vendor(demo_vendor)
-outcome = predict(request, vendor)
+outcome = vendor(request)
 summary = describe(outcome)
-# rejected[bad-argument-type]: predict({"instances": [0.2, 0.8]}, vendor)
+# rejected[bad-argument-type]: vendor({"instances": [0.2, 0.8]})
 # rejected[missing-attribute]: confidence = outcome.confidence
 # rejected[bad-typed-dict-key]: payload: VendorPayload = {"features": [0.2]}
+# rejected[bad-return]: def unchecked(request: PredictRequest) -> PredictOutcome: return {"label": "positive", "confidence": 0.8}
 ```
 
 **Static guarantee:** callers use `PredictRequest`, not arbitrary dictionaries,
@@ -163,7 +168,8 @@ the adapter's explicit outcomes.
 **The unavoidable untyped seam:** `bind_vendor` accepts `object` so a dynamically
 obtained `client.predict` or module attribute can be passed into it. `callable`
 proves only that it can be called somehow, not that it accepts this payload. The
-wrapper's `object` result deliberately makes no claim about the returned value.
+returned `Predictor` accepts only `PredictRequest` and returns `PredictOutcome`.
+The unknown result exists only inside the wrapper and its private validator.
 A signature mismatch becomes `CallFailed(TypeError(...))` at invocation; a
 malformed returned value becomes `InvalidResponse`. This is containment, not a
 static proof of the third-party implementation. There is no unchecked cast to a
@@ -195,20 +201,21 @@ does not retry, log, or silently skip a sample. Those are caller policies.
 
 `Prediction` validates ordinary construction too. `model_construct` bypasses
 validation; `revalidate_instances="always"` ensures the adapter checks existing
-instances again. `parse_response` translates only Pydantic `ValidationError`;
+instances again. `_parse_response` translates only Pydantic `ValidationError`;
 programming defects in validation are not ordinary vendor failures.
 `hide_input_in_errors` keeps raw values out of the string returned here, but it
 is not general redaction: field names and custom error messages can still reveal
 information, and structured errors can contain inputs. Apply logging policy at
 the caller.
-Dependency injection also means a statically compatible callback can still have
-bad behavior; the adapter checks its output rather than trusting its signature.
+The dynamically bound SDK is always validated. A separate implementation of
+`Predictor` must honor the same outcome contract; static compatibility alone
+cannot prove its runtime behavior.
 
 ### Missing types versus incorrect types
 
 | Dependency problem | Boundary strategy |
 | --- | --- |
-| No annotations or a return type of `Any` | Receive as `object`, then validate |
+| No annotations or a return type of `Any` | Contain unknown values inside the SDK adapter and return validated outcomes |
 | Loose input dictionaries | Build a `TypedDict` payload from a typed request |
 | Incorrect return annotations | Widen the result to `object` and validate actual values |
 | Undocumented exceptions | Translate failures at the smallest relevant call boundary |
@@ -225,7 +232,7 @@ keep it in the adapter and document exactly what remains unchecked.
 
 | Shortcut | What it loses | Preferred response |
 | --- | --- | --- |
-| `Any` | Checking of operations and assignments involving that value | A precise schema, protocol, or `object` followed by validation |
+| `Any` | Checking of operations and assignments involving that value | A precise schema or protocol; validate unknown SDK values inside the adapter |
 | Bare `dict` / `list` | Element and record information | A record type or a parameterized collection |
 | `cast(T, value)` | Evidence that the value really satisfies `T` | Parse or narrow; isolate a justified cast at a dependency boundary |
 | Blanket ignores | Visibility of unrelated errors on the same line or file | Repair the model; narrowly suppress a verified checker defect |
@@ -238,8 +245,10 @@ framework operations. Place these behind small adapters. Validate external resul
 once and expose a typed record or protocol to the rest of the code. If the boundary
 cannot be verified statically, say so; do not hide it behind a confident return type.
 
-`object` is useful at that boundary because a checker requires narrowing before
-most operations. It is not a substitute for a precise return type after validation.
+`object` is permitted only at unavoidable library seams such as this dynamic SDK
+binding. It must not become an application parser signature or a downstream return
+type. If the external representation is JSON text, use `model_validate_json` or
+`TypeAdapter.validate_json` directly, without an untyped decoded intermediate.
 
 When an upstream stub is wrong, prefer a corrected stub or a small documented
 adapter. A necessary suppression should identify the exact diagnostic, explain the

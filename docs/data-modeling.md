@@ -7,7 +7,8 @@
 **Mistake:** a JSON dictionary is annotated as a batch record and passed downstream
 without checking its fields. An annotation or `cast` does not validate a payload.
 
-Accept `object` at an untrusted boundary and validate it with Pydantic. Use a
+Accept the concrete external representation, here JSON text, and parse it directly
+with Pydantic. Do not expose `Any` or `object` in application APIs. Use a
 `TypeAdapter` over a `TypedDict` when consumers need an ordinary dictionary, or a
 `BaseModel` when a model object is useful. Internal domain records can remain
 dataclasses; validation does not require carrying Pydantic through every function.
@@ -34,22 +35,25 @@ class DatasetMetadata(TypedDict):
 METADATA = TypeAdapter[DatasetMetadata](DatasetMetadata)
 
 
-def parse_metadata(payload: object) -> DatasetMetadata:
-    """Validate required fields; ignore extra keys or raise ValidationError."""
-    return METADATA.validate_python(payload)
+def parse_metadata(payload: str) -> DatasetMetadata:
+    """Parse JSON metadata; ignore extra keys or raise ValidationError."""
+    return METADATA.validate_json(payload)
 
 
-metadata = parse_metadata({"name": "cifar10", "num_classes": 10})
+metadata = parse_metadata('{"name": "cifar10", "num_classes": 10}')
 classes = metadata["num_classes"]
 # rejected[bad-typed-dict-key]: classes = metadata["class_count"]
 # rejected[bad-typed-dict-key]: broken: DatasetMetadata = {"name": "cifar10"}
+# rejected[bad-argument-type]: parse_metadata({})
 ```
 
 **Static guarantee:** consumers know the required keys and their types. Misspelled
-keys and incomplete typed records are rejected.
+keys, incomplete typed records, and raw dictionary arguments to the JSON parser
+are rejected.
 
 **Runtime obligation:** only the parser establishes that the external value satisfies
-the schema. `TypedDict` itself is not a runtime validator. Here strict validation
+the schema. Malformed JSON and invalid fields raise `ValidationError`.
+`TypedDict` itself is not a runtime validator. Here strict validation
 rejects boolean, string, and float class counts; extra metadata keys are ignored.
 Use `typing_extensions.TypedDict` for Pydantic's Python 3.11 compatibility.
 Parse dates into
@@ -96,9 +100,9 @@ Task: TypeAlias = Annotated[Classification | Regression, Field(discriminator="ki
 TASK = TypeAdapter[Task](Task)
 
 
-def parse_task(payload: object) -> Task:
-    """Select the tagged schema and validate its fields, or raise ValidationError."""
-    return TASK.validate_python(payload)
+def parse_task(payload: str) -> Task:
+    """Parse tagged JSON and validate its fields, or raise ValidationError."""
+    return TASK.validate_json(payload)
 
 
 def loss_name(task: Task) -> str:
@@ -112,10 +116,11 @@ def loss_name(task: Task) -> str:
             assert_never(task)
 
 
-task = parse_task({"kind": "classification", "num_classes": 10})
+task = parse_task('{"kind": "classification", "num_classes": 10}')
 loss = loss_name(task)
 # rejected[missing-argument,unexpected-keyword]: Classification(huber_delta=1.0)
 # rejected[missing-argument,unexpected-keyword]: Regression(num_classes=10)
+# rejected[bad-argument-type]: parse_task({})
 ```
 
 **Static guarantee:** each variant has the right fields; unknown constructor

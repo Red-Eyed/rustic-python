@@ -2,7 +2,7 @@
 
 from typing import Annotated, Final
 
-from pydantic import Field, StringConstraints, field_validator
+from pydantic import Field, StringConstraints, TypeAdapter, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,11 +18,13 @@ class Experiment(BaseSettings, frozen=True):
 
     @field_validator("seed", mode="before")
     @classmethod
-    def reject_boolean_seed(cls, value: object) -> object:
+    def _parse_seed(cls, value: object) -> int:
         """Keep bool distinct from counts while allowing numeric settings text."""
-        if isinstance(value, bool):
-            raise ValueError("seed must not be a boolean")
-        return value
+        # A before-validator receives arbitrary library input; recover int here.
+        match value:
+            case bool():
+                raise ValueError("seed must not be a boolean")
+        return TypeAdapter(int).validate_python(value)
 
 
 config = Experiment(seed=17, features=("height", "width"))

@@ -27,7 +27,11 @@ class VendorPayload(TypedDict):
     instances: list[float]
 
 
-VendorCall: TypeAlias = Callable[[VendorPayload], object]
+class VendorResponse(TypedDict):
+    """Describe only the demo SDK's response, without asserting validation."""
+
+    label: str
+    confidence: float
 
 
 @final
@@ -61,16 +65,27 @@ class InvalidResponse:
 
 
 PredictOutcome: TypeAlias = Prediction | CallFailed | InvalidResponse
+Predictor: TypeAlias = Callable[[PredictRequest], PredictOutcome]
 
 
-def bind_vendor(candidate: object) -> VendorCall:
-    """Wrap an unknown callable; raise TypeError for a noncallable dependency."""
+def bind_vendor(candidate: object) -> Predictor:
+    """Adapt a dynamic SDK callable to typed outcomes; reject noncallable bindings.
+
+    Only this integration seam accepts an unknown dependency. Callability cannot
+    prove its signature; argument mismatches become ordinary call failures.
+    """
     if not callable(candidate):
         raise TypeError("vendor predict must be callable")
 
-    def invoke(payload: VendorPayload) -> object:
-        """Keep the unknown result opaque; signature and SDK errors may propagate."""
-        return candidate(payload)
+    def invoke(request: PredictRequest) -> PredictOutcome:
+        """Call once with owned payload data and validate before returning."""
+        payload = encode_request(request)
+        try:
+            response: object = candidate(payload)
+        except Exception as error:
+            # Contain SDK failures, while leaving adapter defects visible.
+            return CallFailed(cause=error)
+        return _parse_response(response)
 
     return invoke
 
@@ -80,23 +95,12 @@ def encode_request(request: PredictRequest) -> VendorPayload:
     return {"instances": list(request.features)}
 
 
-def parse_response(payload: object) -> Prediction | InvalidResponse:
+def _parse_response(payload: object) -> Prediction | InvalidResponse:
     """Validate the SDK schema; return field errors without echoing input values."""
     try:
         return Prediction.model_validate(payload)
     except ValidationError as error:
         return InvalidResponse(str(error))
-
-
-def predict(request: PredictRequest, call: VendorCall) -> PredictOutcome:
-    """Call the SDK once; expose ordinary call failures and invalid responses."""
-    payload = encode_request(request)
-    try:
-        response = call(payload)
-    except Exception as error:
-        # Only the vendor call is inside this handler; adapter bugs must stay visible.
-        return CallFailed(cause=error)
-    return parse_response(response)
 
 
 def describe(outcome: PredictOutcome) -> str:
@@ -112,15 +116,16 @@ def describe(outcome: PredictOutcome) -> str:
             assert_never(outcome)
 
 
-def demo_vendor(payload: VendorPayload) -> object:
-    """Simulate a dictionary-based vendor that offers no useful output type."""
+def demo_vendor(payload: VendorPayload) -> VendorResponse:
+    """Simulate a dictionary-based vendor that has no validated response schema."""
     return {"label": "positive", "confidence": 0.8}
 
 
 request = PredictRequest(features=(0.2, 0.8))
 vendor = bind_vendor(demo_vendor)
-outcome = predict(request, vendor)
+outcome = vendor(request)
 summary = describe(outcome)
-# rejected[bad-argument-type]: predict({"instances": [0.2, 0.8]}, vendor)
+# rejected[bad-argument-type]: vendor({"instances": [0.2, 0.8]})
 # rejected[missing-attribute]: confidence = outcome.confidence
 # rejected[bad-typed-dict-key]: payload: VendorPayload = {"features": [0.2]}
+# rejected[bad-return]: def unchecked(request: PredictRequest) -> PredictOutcome: return {"label": "positive", "confidence": 0.8}

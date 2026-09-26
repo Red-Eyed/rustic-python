@@ -9,7 +9,7 @@ import pytest
 
 from tools.bundle import ROOT, build_bundles
 from tools.check_book import check_book
-from tools.install_skill import install_skill
+from tools.install_skill import InstallSettings, install_skill
 from tools.skill_metadata import (
     METADATA_FILE,
     SkillMetadata,
@@ -17,6 +17,21 @@ from tools.skill_metadata import (
     git_output,
     source_revision,
 )
+
+
+def test_install_settings_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Resolve the conventional user destination without requiring environment setup."""
+    monkeypatch.delenv("SKILLS_DIR", raising=False)
+    assert InstallSettings().skills_dir == Path.home() / ".agents/skills"
+
+
+def test_install_settings_override(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Parse the existing environment override into a Path before installation."""
+    directory = tmp_path / "custom-skills"
+    monkeypatch.setenv("SKILLS_DIR", str(directory))
+    assert InstallSettings().skills_dir == directory
 
 
 @pytest.fixture

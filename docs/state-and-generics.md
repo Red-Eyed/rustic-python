@@ -124,7 +124,7 @@ augmentation step changes it through an alias.
 
 from typing import Annotated, Final
 
-from pydantic import Field, StringConstraints, field_validator
+from pydantic import Field, StringConstraints, TypeAdapter, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -140,11 +140,13 @@ class Experiment(BaseSettings, frozen=True):
 
     @field_validator("seed", mode="before")
     @classmethod
-    def reject_boolean_seed(cls, value: object) -> object:
+    def _parse_seed(cls, value: object) -> int:
         """Keep bool distinct from counts while allowing numeric settings text."""
-        if isinstance(value, bool):
-            raise ValueError("seed must not be a boolean")
-        return value
+        # A before-validator receives arbitrary library input; recover int here.
+        match value:
+            case bool():
+                raise ValueError("seed must not be a boolean")
+        return TypeAdapter(int).validate_python(value)
 
 
 config = Experiment(seed=17, features=("height", "width"))
@@ -178,6 +180,11 @@ payload policy. The seed validator excludes Python booleans; negative seeds,
 invalid numeric text, empty feature collections, and blank names are invalid.
 Do not assume blanket `strict=True` has identical behavior across settings sources
 and direct model construction. Test the actual source path.
+
+The seed before-validator is a Pydantic integration seam: the library can supply
+arbitrary input before field validation. Its `object` parameter is localized to
+that callback, which rejects booleans and returns a parsed `int`. Application
+code consumes `Experiment.seed` as `int`; it never receives the unknown value.
 
 Schema failures raise `ValidationError`; malformed JSON in a complex environment
 value can raise `pydantic_settings.SettingsError` before model validation. Startup

@@ -24,9 +24,9 @@ class InferenceOutput(TypedDict):
     scaled_logits: tuple[float, ...]
 
 
-def prepare_inference(payload: object) -> InferenceParameters:
-    """Validate external configuration or raise ValidationError, then lower it."""
-    config = InferenceConfig.model_validate(payload)
+def prepare_inference(payload: str) -> InferenceParameters:
+    """Parse JSON options or raise ValidationError, then create plain parameters."""
+    config = InferenceConfig.model_validate_json(payload)
     return InferenceParameters(temperature=config.temperature)
 
 
@@ -37,7 +37,8 @@ def scale_logits(
     return {"scaled_logits": tuple(value / parameters.temperature for value in logits)}
 
 
-parameters = prepare_inference({"temperature": 2.0})
+parameters = prepare_inference('{"temperature": 2.0}')
 output = scale_logits((2.0, -2.0), parameters)
 # rejected[bad-typed-dict-key]: scores = output["probabilities"]
 # rejected[bad-argument-type]: scale_logits((2.0,), InferenceConfig(temperature=2.0))
+# rejected[bad-argument-type]: prepare_inference({})

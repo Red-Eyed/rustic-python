@@ -126,7 +126,8 @@ runtime handling with the smallest change that covers the actual edge case.
 
 Suppose an SDK returns a record with `confidence: "0.8"`.
 
-1. The value is not yet trusted. Receiving it as `object` preserves that fact.
+1. The value is not yet trusted. Keep the unknown SDK result inside its adapter;
+   when the transport provides JSON text, parse that text directly with Pydantic.
 2. Decide whether the SDK contract permits numeric strings. Do not let a convenience
    validator silently make this product decision.
 3. If strings are forbidden, return a schema failure or raise the documented

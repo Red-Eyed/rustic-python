@@ -53,6 +53,11 @@ to the lesson explaining its tradeoffs and verified examples.
 
 ## Validate at boundaries
 
+- [ ] **Do:** parse the concrete wire representation directly with Pydantic and
+  expose precise types to application code. **Avoid:** `Any` or `object` in domain
+  APIs; keep unavoidable library uncertainty inside a small integration adapter.
+  [Data modeling](data-modeling.md)
+
 - [ ] **Do:** validate external schemas with Pydantic and choose coercion,
   unknown-field, and missing-field policies explicitly. **Avoid:** treating an
   annotation or cast as runtime validation, or passing vendor payloads through the

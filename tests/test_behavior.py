@@ -1,9 +1,10 @@
 """Check the runtime obligations that complement the guide's static contracts."""
 
+import json
 from math import isfinite
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 from returns.result import Failure, Success
 
 from examples.explicit_results import InvalidLabel, parse_label
@@ -66,15 +67,17 @@ def test_undefined_precision_differs_from_zero() -> None:
         {"name": "data", "num_classes": 1},
     ],
 )
-def test_metadata_rejects_invalid_payload(payload: object) -> None:
+def test_metadata_rejects_invalid_payload(payload: JsonValue) -> None:
     """Reject malformed external data, including booleans masquerading as counts."""
     with pytest.raises(ValueError):
-        parse_metadata(payload)
+        parse_metadata(json.dumps(payload))
 
 
 def test_metadata_discards_extra_fields() -> None:
     """The parser's documented extra-field policy keeps only the canonical schema."""
-    assert parse_metadata({"name": "data", "num_classes": 3, "extra": 1}) == {
+    assert parse_metadata(
+        json.dumps({"name": "data", "num_classes": 3, "extra": 1})
+    ) == {
         "name": "data",
         "num_classes": 3,
     }
