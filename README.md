@@ -29,7 +29,7 @@ concrete before/after examples, and tradeoffs. Then follow the guide by topic:
 | [Working with checker limitations](docs/checker-limitations.md) | Inference gaps, inaccurate stubs, reproducible bugs, and scoped workarounds |
 | [Tooling and strictness](docs/tooling.md) | Python 3.11 support, setup, checker policy, and running examples |
 | [Modeling data](docs/data-modeling.md) | Validated records, Pydantic discriminated unions, exhaustive matching, and nominal-type tradeoffs |
-| [Errors and absence](docs/errors-and-absence.md) | Explicit results and reason-carrying missing values |
+| [Errors and absence](docs/errors-and-absence.md) | returns' Success/Failure, safe handling, and reason-carrying missing values |
 | [OOP, protocols, and plugins](docs/oop-and-plugins.md) | Composition, small interfaces, registries, wrappers, and extensions |
 | [State, generics, and immutability](docs/state-and-generics.md) | Fitted/unfitted APIs, generics, pydantic-settings, and mutation limits |
 | [Untyped third-party boundaries](docs/third-party-boundaries.md) | Containing loose dictionaries, unknown outputs, exceptions, and mutation |

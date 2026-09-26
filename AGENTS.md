@@ -11,8 +11,9 @@ Rust's ownership, borrow checking, or scientific correctness guarantees.
 
 Pyrefly is the static type checker; Ruff checks and formats code; uv manages the
 environment and lockfile. pytest verifies runtime behavior and the guide's static
-claims. Expression demonstrates library-provided result types; more-itertools
-demonstrates iterator utilities. Neither is a mandatory design style.
+claims. Use returns' Result, Success, and Failure rather than custom generic
+Ok/Err/Result classes. Expression is an optional comparison; more-itertools
+demonstrates iterator utilities. Unchecked unwrap is not statically safe.
 
 A *boundary* is where untrusted or untyped values enter typed code. A *sum type*
 is a closed union of alternatives. A *protocol* describes the small structural

@@ -31,6 +31,8 @@ claim the latest revision without a successful check.
    current task needs; do not load the whole book.
 3. Choose the simplest representation that preserves the required contract.
    Keep native tensors and arrays; wrappers need a concrete boundary benefit.
+   Use returns' Result, Success, and Failure for generic result containers, not
+   custom Ok/Err/Result classes. Unchecked unwrap can raise; handle variants first.
 4. Validate external schemas with Pydantic and load environment configuration with
    pydantic-settings. Build CLIs with its CliApp and typed argument models instead
    of hand-written argparse. Use discriminated unions for tagged payloads. Keep validation

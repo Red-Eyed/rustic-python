@@ -4,8 +4,9 @@ from math import isfinite
 
 import pytest
 from pydantic import ValidationError
+from returns.result import Failure, Success
 
-from examples.explicit_results import Err, InvalidLabel, Ok, parse_label
+from examples.explicit_results import InvalidLabel, parse_label
 from examples.generic_batches import Batch, first
 from examples.immutable_config import Experiment
 from examples.preprocessing_state import UnfittedCenterer
@@ -35,7 +36,7 @@ def test_bad_label_preserves_input(raw: str) -> None:
     """A rejected label retains both the input and its explanation."""
     outcome = parse_label(raw)
     match outcome:
-        case Err(error=InvalidLabel(raw=original, reason=reason)):
+        case Failure(InvalidLabel(raw=original, reason=reason)):
             assert original == raw
             assert reason
         case _:
@@ -45,7 +46,7 @@ def test_bad_label_preserves_input(raw: str) -> None:
 @pytest.mark.parametrize(("raw", "expected"), [("0", 0), ("7.0", 7)])
 def test_numeric_label_text_is_valid(raw: str, expected: int) -> None:
     """Accept zero and integer-valued decimal text under the parsing policy."""
-    assert parse_label(raw) == Ok(expected)
+    assert parse_label(raw) == Success(expected)
 
 
 def test_undefined_precision_differs_from_zero() -> None:

@@ -9,6 +9,9 @@ instructions. Repository-specific requirements take precedence over this guide.
    the representation should prevent.
 2. Keep required identity and schema fields required. Use typed variants for real
    alternatives and reason-carrying absence for domain values.
+   For generic success/failure containers, use returns' `Result`, `Success`, and
+   `Failure`; do not implement custom `Ok`/`Err`/`Result` classes. Check the variant
+   before unwrapping and do not claim unwrapping is statically safe.
 3. Annotate function boundaries and structured records. Preserve generic
    relationships. Do not introduce `Any`, casts, or ignores merely to silence
    unexplained diagnostics. For a verified limitation, use the smallest justified

@@ -11,18 +11,24 @@ operation preserves types or rejects misuse.
 
 | Need | Library to consider | What it contributes | What remains outside its guarantee |
 | --- | --- | --- | --- |
+| Expected success/failure outcomes | [returns](https://returns.readthedocs.io/en/latest/pages/result.html) | `Result`, `Success`, `Failure`, and composition | Unchecked unwrapping can raise; mypy-plugin guarantees do not transfer to Pyrefly |
 | Reusable success/failure and optional-value composition | [Expression](https://expression.readthedocs.io/en/stable/guides/getting-started.html) | `Result`, `Option`, and composition helpers | Not every variant access is statically guarded |
 | Batching and iterator transformations | [more-itertools](https://more-itertools.readthedocs.io/en/stable/) | Reusable iterable algorithms | Batch length, exhaustion, and buffering remain runtime concerns |
 | Required boundary validation and SDK payloads | [Pydantic](https://docs.pydantic.dev/latest/concepts/strict_mode/) | Models and `TypeAdapter` with an explicit coercion policy | Runtime validation does not make arbitrary incoming data statically safe |
 
-**Verified here:** Pydantic 2.13.5, pydantic-settings 2.15.0, Expression 5.7.0,
+**Verified here:** returns 0.29.0, Pydantic 2.13.5, pydantic-settings 2.15.0, Expression 5.7.0,
 and more-itertools 11.1.0. The lockfile records the exact environment; manifest
 requirements use lower bounds. Expression and more-itertools are optional design
 choices, while boundary validation examples use Pydantic consistently.
 
+Use **returns** for result containers rather than defining custom `Ok`/`Err`/`Result`
+types. The [errors lesson](errors-and-absence.md) demonstrates parsing, handling
+both outcomes, and mapping successful values with runnable examples. Expression
+below is an optional comparison for projects already using its functional APIs.
+
 ## Expression: use composition, understand variant access
 
-Use Expression when success/failure pipelines recur across a codebase and shared
+For projects already using Expression, shared
 `map`/`bind` operations are clearer than repeated dispatch. `map` transforms a
 success; `bind` composes a step that itself returns a result. Explicitly specifying
 both generic arguments at construction keeps the success and error contracts
@@ -82,9 +88,9 @@ error type and changes the success type. Assigning the original integer result t
 
 **Important limit verified by our tests:** Pyrefly accepts `.ok` on an Expression
 `Error` result, but that access raises `AttributeError` at runtime. Do not assume
-this class has the same narrowing requirement as our `Ok[T] | Err[E]` union. Use
-the documented composition/handling operations; keep explicit dataclass unions
-when enforcing variant access and exhaustive dispatch is the priority.
+library containers force callers to check the variant before accessing it. Use
+documented handling operations. The returns lesson likewise tests unchecked
+unwrapping as a runtime failure, not a rejected static operation.
 
 An `Option` is useful for ordinary presence/absence. Where the reason matters,
 keep a reason-carrying variant or a `Result` error instead. Callback exceptions
@@ -173,8 +179,9 @@ run that inferred `Any` as evidence of compatibility.
 
 Some libraries depend on checker-specific extensions. For example, `returns`
 documents a mypy plugin for parts of its typing behavior; that is not evidence
-those guarantees transfer to Pyrefly. It remains a candidate, but validate the
-specific operations before choosing it over a simpler result representation.
+those guarantees transfer to Pyrefly. This guide verifies the demonstrated
+constructors, typed accessors, and mapping under Pyrefly; validate additional
+decorators and composition helpers before relying on their inferred types.
 [returns plugin documentation](https://returns.readthedocs.io/en/latest/pages/contrib/mypy_plugins.html).
 
 Keep optional recommendations separate from required example dependencies. Do not
