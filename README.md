@@ -3,7 +3,7 @@
 **Rust-inspired types and design for Python 3.11+, with an ML and data science bias.**
 
 [Read the book](https://red-eyed.github.io/rustic-python/) ·
-[Install the Codex skill](docs/codex.md)
+[Install in Codex, Claude Code, or Cline](docs/codex.md)
 
 Catch incorrect API calls, missing cases, and invalid state transitions before
 running your code. Model uncertainty explicitly, validate external data at the
@@ -37,6 +37,18 @@ concrete before/after examples, and tradeoffs. Then follow the guide by topic:
 
 For team workflows, see [instructions for coding agents](docs/agent-guide.md).
 For adding or updating material, see [growing the guide](docs/contributing.md).
+
+## Install in your coding agent
+
+Give your agent this message; it handles installation:
+
+```text
+Install the Rustic Python skill by reading and following:
+https://raw.githubusercontent.com/Red-Eyed/rustic-python/main/INSTALL.md
+```
+
+Works with Codex, Claude Code, and Cline. See [agent setup](docs/codex.md) for
+invocation examples, project scope, and updates.
 
 ## Run the checks
 

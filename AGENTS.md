@@ -46,13 +46,18 @@ runtime framework. Keep README.md as the entry point and put detailed lessons in
 `docs/`. `docs/agent-guide.md` contains portable advice for readers' projects;
 this file contains instructions for maintaining this repository.
 
-`docs/SUMMARY.md` is the book reading order. `make book` stages maintained sources
-and builds mdBook; `make bundle` builds the offline Codex skill from the same
+`docs/SUMMARY.md` is the book reading order. `just book` stages maintained sources
+and builds mdBook; `just bundle` builds the portable agent skill from the same
 chapters. `skills/rustic-python/SKILL.md` is its entry point. `tools/` contains
 distribution tooling, not tutorial examples, so it does not need rejected cases.
 Never edit generated `build/` copies or include this maintenance AGENTS.md in the
-installed skill. `make install-skill` links the bundle locally and rejects
+installed skill. `just install-skill` links the bundle locally and rejects
 conflicting installations. Test changes through temporary destinations.
+
+`INSTALL.md` is the agent-readable installation entry point for Codex, Claude
+Code, and Cline. Keep its host locations grounded in official documentation.
+The primary reader flow is a link given to the agent, which installs the ready-made
+ZIP; local build tools are only needed by contributors.
 
 `pyproject.toml` defines dependencies; `pytest.ini` defines pytest settings and
 discovery. `pyrefly.toml` and

@@ -9,6 +9,7 @@ FILES = (
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
+    "INSTALL.md",
     "pyproject.toml",
     "uv.lock",
     "pyrefly.toml",

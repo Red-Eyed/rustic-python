@@ -24,6 +24,10 @@
 
 ### Developers
 
+- Add agent-operated installation instructions for Codex, Claude Code, and Cline;
+  readers give their agent a link instead of running setup commands.
+- Replace Make targets with just recipes for checks, book builds, and skill
+  installation; install just automatically in the GitHub Actions workflow.
 - Add book and skill build targets, safe local skill installation, and GitHub
   Actions checks with GitHub Pages deployment for successful main builds.
 - Use one project dependency list with minimum versions; keep exact resolutions

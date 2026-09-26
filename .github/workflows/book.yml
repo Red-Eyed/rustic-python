@@ -21,7 +21,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: '3.11'
-      - run: make check book
+      - uses: extractions/setup-just@v4
+      - run: just check book
       - uses: actions/upload-artifact@v4
         with:
           name: rustic-python-skill

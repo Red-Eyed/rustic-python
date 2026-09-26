@@ -51,16 +51,16 @@ Add new chapters to that list; tests require every topic page to appear.
 bundled automatically from the chapters and executable examples.
 
 ```sh
-make check          # Lint, type-check, and test the guide and distributions
-make book           # Prepare sources, obtain mdBook, and build the HTML book
-make serve          # Build sources and preview the book in your browser
-make bundle         # Build the portable skill and ZIP without downloading mdBook
+just check          # Lint, type-check, and test the guide and distributions
+just book           # Prepare sources, obtain mdBook, and build the HTML book
+just serve          # Build sources and preview the book in your browser
+just bundle         # Build the portable skill and ZIP without downloading mdBook
 ```
 
 The build uses upstream mdBook binaries on macOS and Linux and keeps them under
 ignored `build/tools/`. Output goes to `build/book/`; the skill goes to
 `build/skills/rustic-python/`. Generated copies are never edited or committed.
-After editing source chapters, restart `make serve` to refresh its staged input.
+After editing source chapters, restart `just serve` to refresh its staged input.
 The fixture diagram uses Mermaid from a CDN; when unavailable, its source remains
 visible. The installed skill's references do not require network access.
 

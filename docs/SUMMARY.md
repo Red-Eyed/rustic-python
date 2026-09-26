@@ -25,7 +25,8 @@
 
 # Using and extending the guide
 
-- [Using the guide in Codex](codex.md)
+- [Using the guide in your coding agent](codex.md)
+- [Installation instructions for agents](../INSTALL.md)
 - [Instructions for coding agents](agent-guide.md)
 - [Contributing and publishing](contributing.md)
 

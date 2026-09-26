@@ -1,58 +1,46 @@
-# Use the guide in Codex
+# Use the guide in your coding agent
 
 [Project overview and reading path](../README.md)
 
-The `rustic-python` skill helps Codex apply the guide to Python implementation
-and review tasks. It loads relevant chapters on demand and includes the examples,
-tests, and configuration templates locally. It does not replace your project's
-instructions or automatically install tutorial dependencies into your application.
+Give **Codex, Claude Code, or Cline** this message:
 
-## Install from a checkout
-
-With uv and Make available, run from this repository:
-
-```sh
-make install-skill
+```text
+Install the Rustic Python skill by reading and following:
+https://raw.githubusercontent.com/Red-Eyed/rustic-python/main/INSTALL.md
 ```
 
-This builds the skill and links it into `~/.agents/skills/rustic-python`.
-Keep this checkout: the link points to `build/skills/rustic-python` inside it.
-Rerunning the command refreshes the bundled guide after you update the checkout.
-An existing unrelated installation is never overwritten.
+The agent downloads the generated bundle, selects its own skill directory, and
+verifies the installed references. You do not need to clone this repository,
+install uv or just, or run setup commands. Add “for this project only” to the
+message if you want a project-scoped installation. Ask the agent to “update”
+instead of “install” when refreshing an existing copy.
 
-For a project-scoped installation, set the destination explicitly:
-
-```sh
-SKILLS_DIR=/path/to/your/project/.agents/skills make install-skill
-```
-
-Remove only the installed symlink to uninstall. Other skills and project settings
-are unaffected. Codex normally detects new skills automatically; restart Codex
-if it does not appear.
-
-## Install a standalone snapshot
-
-The published book includes a [downloadable skill bundle](https://red-eyed.github.io/rustic-python/downloads/rustic-python.zip).
-Extract its `rustic-python` directory into `~/.agents/skills/` or your project's
-`.agents/skills/`. This snapshot works without a checkout or network connection.
-To update it, replace only that skill folder with a newer bundle after preserving
-any edits you made. Do not place a snapshot over an existing symlink installation.
+[Read the installation instructions](../INSTALL.md) to see exactly what the
+agent will do. The same portable `SKILL.md`, chapters, examples, and templates
+work across all three hosts. This requires an agent with file and network tools;
+the host may ask for its normal permissions.
 
 ## Use it
 
-In Codex CLI or the IDE extension, mention the skill:
+| Host | Example |
+| --- | --- |
+| Codex | `$rustic-python review this preprocessing pipeline` |
+| Claude Code | `/rustic-python review this preprocessing pipeline` |
+| Cline | Select `/rustic-python` in chat and request the review |
 
-```text
-$rustic-python review this preprocessing pipeline for unsafe boundaries
-$rustic-python design a small protocol for interchangeable feature extractors
-$rustic-python improve these pytest fixtures without adding unnecessary layers
-```
+The skill loads relevant chapters on demand. Installing it does not load the
+whole book into every conversation or replace your project's instructions.
+Its tool settings are templates to adapt, not instructions to overwrite your
+configuration. Installed references remain available offline.
 
-Codex can also select it when a request matches the skill description. The skill
-routes to specific topics; installing it does not load the whole book into every
-conversation. Its bundled tool settings are templates to adapt, not instructions
-to overwrite your configuration.
+Host documentation: [Codex](https://learn.chatgpt.com/docs/build-skills),
+[Claude Code](https://code.claude.com/docs/en/skills), and
+[Cline](https://docs.cline.bot/customization/skills).
 
-See [official Codex skill documentation](https://learn.chatgpt.com/docs/build-skills)
-for discovery, scope, and invocation. A plugin can distribute the same skill more
-broadly later; this project currently provides a directly installable local skill.
+## For contributors working from a checkout
+
+The optional `just install-skill` recipe links a locally built bundle into
+Codex's personal skill directory. To select a different host or project location,
+set `SKILLS_DIR` to that host's skills directory. Keep the checkout while using
+this linked installation; rebuilding refreshes its references. The downloadable
+snapshot used by the agent installation flow does not depend on a checkout.
