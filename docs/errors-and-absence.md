@@ -7,14 +7,19 @@
 **Mistake:** a caller must distinguish accepted and rejected labels, but the
 parser returns `-1` or an empty dictionary that hides the rejection reason.
 
-Expected failures are data; exceptions signal unexpected failures or violated
-internal assumptions. Use typed outcomes for anticipated rejection, absence, and
-failure cases, even when the caller's eventual decision is to stop the operation.
-Whether a caller retries or stops does not determine whether the failure belongs
-in the type contract.
+Use typed outcomes for recoverable failures: cases for which the caller has a
+supported decision such as retrying, choosing a fallback, requesting corrected
+input, or recording a rejected row and continuing. Use exceptions when the
+operation has no meaningful recovery path and must unwind, rather than pretending
+normal processing can continue. Broken internal invariants are a typical example.
 
-A signature such
-as `Result[Config, ReadError | InvalidConfig]` makes those alternatives visible to
+Recoverability is relative to the operation's contract, not a claim that the whole
+process must terminate. An outer boundary may still catch an exception to clean
+up, report the failure, or isolate the failed operation. An expected condition
+is not automatically recoverable, and an unfamiliar failure is not automatically
+fatal; define the supported recovery policy instead of relying on those labels.
+
+A signature such as `Result[Config, ReadError | InvalidConfig]` makes those alternatives visible to
 the checker; a plain `Config` return annotation does not declare raised exceptions.
 Callers must narrow the result before consuming its success payload. Domain-specific
 unions can express the same requirement without generic success/error containers.
@@ -34,7 +39,7 @@ The maintainers of the archived `result` library questioned the practical fit of
 this programming style in Python's ecosystem. That is a useful caution against
 adopting it wholesale, not evidence that all explicit domain alternatives are
 unhelpful. See [the maintenance discussion](https://github.com/rustedpy/result/issues/201#issuecomment-2559270994).
-The useful goal here is a checked contract for expected failures, not imitation
+The useful goal here is a checked contract for recoverable failures, not imitation
 of a functional library. Keep only the variants and handling the application needs.
 
 **A result annotation is not a no-throw guarantee.** Python's type system does not
@@ -62,9 +67,9 @@ variants, not structurally interchangeable protocols. `Generic[T]` is Python 3.1
 syntax for type parameters; it introduces no shared result implementation.
 
 A low-level validator may raise because that is its library contract. Translate
-anticipated validation errors into typed outcomes at the application boundary.
+recoverable validation errors into typed outcomes at the application boundary.
 Internal guards can still raise for broken assumptions; do not relabel routine
-invalid external input as a programming defect. See
+invalid external input as a programming defect when callers can handle it. See
 [acceptable simplifications](practical-choices.md#acceptable-simplifications-and-when-to-stop-simplifying).
 
 [Source](../examples/explicit_results.py)
@@ -160,9 +165,9 @@ prevent normal field reassignment but do not freeze mutable payloads or enforce
 ownership. Annotations do not validate dynamically supplied constructor arguments.
 
 The implementation is a self-contained lesson, not a shared framework for the
-other examples. Keep exceptions for unexpected failures and violated internal
-contracts. Use domain-specific variants when success/failure does not capture
-all anticipated alternatives.
+other examples. Keep exceptions for failures with no supported recovery path in
+the operation. Use domain-specific variants when success/failure does not capture
+all supported caller decisions.
 
 ## Know where a failure happened
 

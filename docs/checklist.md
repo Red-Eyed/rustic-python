@@ -28,16 +28,16 @@ to the lesson explaining its tradeoffs and verified examples.
 
 ## Handle outcomes and alternatives
 
-- [ ] **Do:** declare expected failures callers should handle as typed outcomes;
+- [ ] **Do:** declare recoverable failures callers should handle as typed outcomes;
   use the small `Ok[T] | Err[E]` union when generic success/failure fits.
   **Avoid:** hiding expected alternatives in an exception-only API, converting
   programming defects into routine errors, or claiming Result prevents every
   possible exception. Keep the representation small.
   [Errors and absence](errors-and-absence.md)
-- [ ] **Do:** reserve exceptions for unexpected failures and broken internal
-  assumptions; translate anticipated library errors at the application boundary.
-  **Avoid:** treating an expected failure as exceptional merely because the caller
-  chooses to abort rather than recover.
+- [ ] **Do:** use exceptions when an operation has no supported recovery path and
+  must unwind; translate recoverable library errors into typed outcomes at the
+  boundary. **Avoid:** treating every expected condition as recoverable or letting
+  the caller continue normally after a broken internal invariant.
   [Failure contracts](errors-and-absence.md#make-expected-failures-explicit)
 - [ ] **Do:** extract payloads through structural pattern matching on the variant.
   **Avoid:** unchecked unwrap helpers, discarded outcomes, or claiming that a

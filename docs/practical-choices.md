@@ -50,9 +50,9 @@ expected. The [tests](../tests/test_practical_defaults.py) exercise these cases.
 **What this does not guarantee:** a loader may filter records, shard data, or use a
 different sampling policy. This function counts according to its inputs; it does
 not predict every loader's behavior. Exceptions also do not appear in its return
-type. Treat invalid internal counts as a broken assumption; if invalid values are
-anticipated external input, validate them at the boundary and return a typed
-failure. Choosing to abort does not make an expected failure exceptional.
+type. Treat invalid internal counts as a broken assumption. For external input
+with a supported recovery path, validate at the boundary and return a typed
+failure; otherwise let the failed operation unwind through an exception.
 
 ## Acceptable simplifications, and when to stop simplifying
 
@@ -62,7 +62,7 @@ failure. Choosing to abort does not make an expected failure exceptional.
 | An ordinary function | There is no resource lifecycle or configurable object state to manage | Precise arguments, return type, and failure behavior | State or interchangeable implementations become a real concern |
 | A concrete dependency | There is one implementation and callers do not need substitution | Keep the dependency at the appropriate layer | A second backend or independently injected implementation must satisfy the same contract |
 | A typed callable | The extension point is one operation | Its argument/return contract and error policy | Implementations need several related operations or stateful capabilities |
-| `ValueError` / `TypeError` | An internal precondition is unexpectedly violated | Keep the programming defect visible; document the precondition | Invalid input is an anticipated external or domain case; return a typed outcome at the application boundary |
+| `ValueError` / `TypeError` | The operation has no supported recovery path, such as a broken internal precondition | Keep the failure visible and let the operation unwind; document the precondition | The caller can retry, use a fallback, request corrected input, or reject a record and continue; return a typed outcome |
 | A local `None` from a standard API | It means one local condition, such as a failed lookup, and is handled immediately | An explicit presence check and a typed value after the check | Absence crosses the domain boundary or callers need its reason |
 | A local dictionary | It is a temporary literal or a true homogeneous mapping | No concealed record schema escaping to other helpers | Fixed keys form a shared record; use a `TypedDict`, dataclass, or validated model |
 | A typed field plus a guard | The invalid state is contained within a short operation | Check it before the operation that requires the value | Many callers must repeatedly remember the same state restriction |

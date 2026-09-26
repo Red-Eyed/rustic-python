@@ -12,11 +12,12 @@ and what to avoid before handing off a change. Apply only the relevant items.
    the representation should prevent.
 2. Keep required identity and schema fields required. Use typed variants for real
    alternatives and reason-carrying absence for domain values.
-   Expected failures are data; reserve exceptions for unexpected failures and
-   violated internal assumptions. Declare anticipated failures as typed outcomes,
-   even when the caller will stop rather than recover. Catch specific
-   expected exceptions at boundaries; do not disguise programming defects as
-   routine errors or claim that Result prevents all exceptions. Use the custom
+   Use typed outcomes for recoverable failures and exceptions when the operation
+   has no supported recovery path and must unwind. Recovery includes retry,
+   fallback, corrected input, or a rejected record that permits processing to
+   continue. Convert specific recoverable library errors at boundaries; do not
+   disguise programming defects as routine errors or claim that Result prevents
+   all exceptions. Use the custom
    `Result` union when generic success/failure fits the contract. Its `Ok[T]` and
    `Err[E]` variants are frozen dataclasses. Use structural pattern matching
    and `assert_never`; avoid a shared result base class, third-party result
@@ -61,8 +62,8 @@ and what to avoid before handing off a change. Apply only the relevant items.
     Assert observable behavior; do not call fixtures manually or hide the operation
     under test inside a result fixture.
 13. State relevant edge cases and acceptable simplifications. Prefer plain values
-    and functions where they express the contract. Reserve exceptions for unexpected
-    failures and broken assumptions; keep expected failures in typed outcomes. Escalate to
+    and functions where they express the contract. Keep recoverable failures in typed
+    outcomes and use exceptions when no supported recovery path exists. Escalate to
     wrappers, variants, or protocols for a demonstrated need, not resemblance to
     Rust. Use the [decision guide](practical-choices.md), and never simplify away a
     failure, absence reason, or data-handling policy that callers need.
