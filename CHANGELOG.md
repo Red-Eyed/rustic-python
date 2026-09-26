@@ -4,6 +4,8 @@
 
 ### Highlights
 
+- Add an online book with chapter navigation and search, plus an offline Codex
+  skill generated from the same maintained guide.
 - Add a practical guide to Rust-inspired Python types and design, with ML and
   data science examples and explicit limits on what static checking guarantees.
 
@@ -22,6 +24,8 @@
 
 ### Developers
 
+- Add book and skill build targets, safe local skill installation, and GitHub
+  Actions checks with GitHub Pages deployment for successful main builds.
 - Use one project dependency list with minimum versions; keep exact resolutions
   in `uv.lock`.
 - Keep pytest discovery and strictness settings in a standalone `pytest.ini`.

@@ -1,0 +1,32 @@
+# Reading order
+
+[Welcome](../README.md)
+
+# Foundations
+
+- [Principles, benefits, and costs](fundamentals.md)
+- [Tooling and strictness](tooling.md)
+- [Modeling data](data-modeling.md)
+- [Errors and absence](errors-and-absence.md)
+
+# Designing Python APIs
+
+- [Protocols, composition, and plugins](oop-and-plugins.md)
+- [State, generics, and immutability](state-and-generics.md)
+- [Untyped third-party boundaries](third-party-boundaries.md)
+- [Practical choices and edge cases](practical-choices.md)
+- [Working with checker limitations](checker-limitations.md)
+
+# Scientific code and testing
+
+- [Tensors and scientific correctness](ml-correctness.md)
+- [Testing with pytest](testing.md)
+- [Supplementary libraries](libraries.md)
+
+# Using and extending the guide
+
+- [Using the guide in Codex](codex.md)
+- [Instructions for coding agents](agent-guide.md)
+- [Contributing and publishing](contributing.md)
+
+[Changelog](../CHANGELOG.md)

@@ -41,8 +41,34 @@ The synchronization check discovers `README.md` and every Markdown page under
 `docs/`, and covers both kinds of snippets without duplicating source excerpts.
 
 For tool upgrades, recheck the config files and examples together, then update the
-version requirements, project dependencies, and lockfile together. The current
-automation runs locally through pytest; no hosted CI workflow is included yet.
+version requirements, project dependencies, and lockfile together.
+
+## Build the book and skill
+
+`docs/` remains the chapter source, and `docs/SUMMARY.md` defines reading order.
+Add new chapters to that list; tests require every topic page to appear.
+`skills/rustic-python/SKILL.md` is the short agent entry point. Its references are
+bundled automatically from the chapters and executable examples.
+
+```sh
+make check          # Lint, type-check, and test the guide and distributions
+make book           # Prepare sources, obtain mdBook, and build the HTML book
+make serve          # Build sources and preview the book in your browser
+make bundle         # Build the portable skill and ZIP without downloading mdBook
+```
+
+The build uses upstream mdBook binaries on macOS and Linux and keeps them under
+ignored `build/tools/`. Output goes to `build/book/`; the skill goes to
+`build/skills/rustic-python/`. Generated copies are never edited or committed.
+After editing source chapters, restart `make serve` to refresh its staged input.
+The fixture diagram uses Mermaid from a CDN; when unavailable, its source remains
+visible. The installed skill's references do not require network access.
+
+The GitHub Actions workflow runs checks and builds on pull requests and pushes
+to `main`. Only successful builds on `main` deploy to GitHub Pages. The ZIP is
+included in the site and uploaded as a workflow artifact. GitHub Pages must use
+GitHub Actions as its publishing source in repository settings. Deployment access
+is separate from building the book locally.
 
 Further reading: [Python typing specification](https://typing.python.org/en/latest/spec/),
 [Rust enums and pattern matching](https://doc.rust-lang.org/book/ch06-00-enums.html),

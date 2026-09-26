@@ -1,0 +1,16 @@
+[book]
+title = "Rustic Python"
+authors = ["Vadym Stupakov"]
+description = "Practical Rust-inspired Python types and design"
+language = "en"
+src = "build/book-source"
+
+[build]
+build-dir = "build/book"
+create-missing = false
+
+[output.html]
+site-url = "/rustic-python/"
+git-repository-url = "https://github.com/Red-Eyed/rustic-python"
+preferred-dark-theme = "navy"
+additional-js = ["book/mermaid.js"]

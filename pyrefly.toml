@@ -3,6 +3,7 @@ required-version = ">=1.3.1"
 python-version = "3.11"
 preset = "strict"
 project-includes = ["**/*.py", "**/*.pyi"]
+project-excludes = ["build/**"]
 
 # Missing dependencies must remain visible instead of becoming Any.
 ignore-missing-imports = []

@@ -1,6 +1,6 @@
 [project]
 name = "rustic-python"
-version = "0.1.2"
+version = "0.2.0"
 description = "A guide to Rust-inspired Python types, with an ML and data science bias"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,6 +12,7 @@ dependencies = [
     "ruff>=0.16.9",
     "expression>=5.7.0",
     "more-itertools>=11.1.0",
+    "typing-extensions>=4.12",
 ]
 
 [tool.uv]

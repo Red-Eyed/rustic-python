@@ -36,7 +36,8 @@ uv run --locked python examples/plugin_composition.py  # Run one independent exa
 
 Before committing, run Ruff check, Ruff format, Pyrefly, and pytest. Keep the
 manifest and lockfile versions synchronized when updating the project version.
-There is no hosted CI workflow; do not imply local checks run on GitHub.
+`.github/workflows/book.yml` runs checks and builds on pull requests and main;
+successful main builds deploy through GitHub Pages once Pages is enabled.
 
 ## Architecture and verification
 
@@ -44,6 +45,14 @@ This is a documentation project with independent executable lessons, not a share
 runtime framework. Keep README.md as the entry point and put detailed lessons in
 `docs/`. `docs/agent-guide.md` contains portable advice for readers' projects;
 this file contains instructions for maintaining this repository.
+
+`docs/SUMMARY.md` is the book reading order. `make book` stages maintained sources
+and builds mdBook; `make bundle` builds the offline Codex skill from the same
+chapters. `skills/rustic-python/SKILL.md` is its entry point. `tools/` contains
+distribution tooling, not tutorial examples, so it does not need rejected cases.
+Never edit generated `build/` copies or include this maintenance AGENTS.md in the
+installed skill. `make install-skill` links the bundle locally and rejects
+conflicting installations. Test changes through temporary destinations.
 
 `pyproject.toml` defines dependencies; `pytest.ini` defines pytest settings and
 discovery. `pyrefly.toml` and

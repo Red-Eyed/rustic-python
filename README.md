@@ -2,6 +2,9 @@
 
 **Rust-inspired types and design for Python 3.11+, with an ML and data science bias.**
 
+[Read the book](https://red-eyed.github.io/rustic-python/) ·
+[Install the Codex skill](docs/codex.md)
+
 Catch incorrect API calls, missing cases, and invalid state transitions before
 running your code. Model uncertainty explicitly, validate external data at the
 boundary, and test the behavior that static types cannot establish.

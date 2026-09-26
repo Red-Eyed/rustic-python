@@ -1,0 +1,46 @@
+name: Verify and publish the book
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: book-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+      - run: make check book
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rustic-python-skill
+          path: build/book-source/downloads/rustic-python.zip
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/book
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy the verified book
+        id: deployment
+        uses: actions/deploy-pages@v4
