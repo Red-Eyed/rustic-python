@@ -2,6 +2,20 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [f8bae47](https://github.com/Red-Eyed/rustic-python/commit/f8bae474511fef32da6c3601e9a253a14348707e) — 2026-09-26
+
+**Library result types and preserved failure diagnostics**
+
+- Replace custom generic Ok/Err/Result definitions with returns' `Result`,
+  `Success`, and `Failure`; update the guide and agent recommendations.
+- Explain that unchecked unwrapping can raise and that returns does not provide
+  the exhaustive-matching guarantee of a closed Python union.
+- Demonstrate typed mapping and explicit handling of both outcomes, with tests
+  for invalid labels and unchecked extraction.
+- Explain preserving caught exceptions, tracebacks, Python 3.11 notes, and data
+  provenance; cover logging and the memory cost of retaining tracebacks.
+- Add returns to the dependencies and update the project version to `0.3.2`.
+
 ## [b9108ac](https://github.com/Red-Eyed/rustic-python/commit/b9108aca14920494b8273c03338f9898f436995a) — 2026-09-26
 
 **Automatic skill freshness checks**
