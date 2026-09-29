@@ -2,6 +2,15 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [bf83b9a](https://github.com/Red-Eyed/rustic-python/commit/bf83b9a) — 2026-09-29
+
+**Concise alternatives with checked source links — 0.8.2**
+
+- Replace long inline example files with focused before/after sketches across
+  the lessons; link the complete checked source bundled with the book.
+- Refer readers to the `Result` and protocol lessons where later examples reuse
+  those ideas, and keep source-link checks aligned with the shorter pages.
+
 ## [f94e1bb](https://github.com/Red-Eyed/rustic-python/commit/f94e1bb) — 2026-09-29
 
 **Explain the Rust-inspired Result choice — 0.8.1**
