@@ -4,16 +4,17 @@
 
 ## Require only the interface you use
 
-A **protocol** describes the operations a caller needs. An implementation matches
-by providing compatible methods; it does not need to inherit from the protocol.
-Here a transform takes numbers and returns numbers, a contract that can serve
-coordinate conversion, signal processing, or feature preparation.
+```diff
+- def prepare(values: Features, transform: object) -> Features:
+-     return getattr(transform, "transform")(values)
++ def prepare(values: Features, transform: FeatureTransform) -> Features:
++     return transform.transform(values)
+```
 
-**Mistake:** feature preprocessing depends on a particular trainer or dataset class,
-even though it only needs one transformation method.
-
-A `Protocol` expresses structural compatibility. Implementations do not need to
-inherit from it. Unlike Rust trait implementations, conformance is implicit.
+**Why better:** the dynamic call leaves the method's existence and return type to
+runtime. The protocol makes them checkable: `Identity` is accepted, while
+`Describe`, which returns text, is rejected as `bad-argument-type`.
+Implementations satisfy the protocol by their methods, without inheriting from it.
 
 [Source](../examples/small_protocols.py)
 

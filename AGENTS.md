@@ -13,8 +13,10 @@ Rust's ownership, borrow checking, or scientific correctness guarantees.
 The reader experience is a self-contained book. Show code, relevant values,
 checker rejections, and their explanations directly in the chapters. Never require
 readers to clone, install Python, open a terminal, or execute/uncomment an example.
-Keep explanations concise: one treatment per idea, without repeated summaries
-or policy reminders. Source links are optional provenance; maintenance commands belong in the contributor
+Lead lessons with before/after code and the specific runtime mistake now rejected
+by the type checker. Label runtime-only improvements honestly. Replace prose with
+focused comparisons; avoid duplicate explanations. Source links are optional
+provenance; maintenance commands belong in the contributor
 appendix, and agent installation belongs in its optional appendix.
 
 Pyrefly is the static type checker; Ruff checks and formats code; uv manages the
@@ -119,8 +121,9 @@ pytest's temporary directories, not committed example code.
   Use discriminated unions for tagged external alternatives. Keep validation and
   model construction outside compiled inference; use native tensors and plain
   NamedTuple/TypedDict records there. Internal dataclasses and algorithm guards
-  remain appropriate. Keep native arrays and tensors in numerical code; nominal wrappers
-  need a demonstrated benefit, not resemblance to Rust.
+  remain appropriate. Keep native arrays and tensors in numerical code. Do not demonstrate
+  numerical APIs with tuple-based stand-ins or nominal Logits/Probabilities wrappers;
+  use realistic domains such as distinct identifiers to teach nominal types.
 - Use small protocols at real extension points, composition for added behavior,
   and exhaustive matching for closed unions. Do not manufacture abstractions for
   ordinary pure functions.

@@ -17,7 +17,8 @@ experience is required. The examples support Python 3.11+ and introduce typing
 concepts as they are needed; later lessons apply them to ML and scientific code.
 
 Read it as a book: the code, relevant results, and checker rejections are shown
-on the page. No Python installation, terminal, or repository clone is needed.
+on the page. Before/after examples show which mistakes move from runtime to a
+type-checking error. No Python installation, terminal, or repository clone is needed.
 
 Python remains dynamic. These patterns improve its contracts without providing
 Rust's ownership, borrow checking, or a proof of numerical correctness.

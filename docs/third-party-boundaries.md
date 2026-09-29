@@ -4,25 +4,22 @@
 
 ## Contain untyped third-party code
 
-**Mistake:** an SDK accepts arbitrary dictionaries, returns `Any`, mutates its
-inputs, and throws undocumented exceptions. Annotating its return as `Prediction`
-does not make any of those behaviors safe. A `cast` simply hides the uncertainty.
+```diff
+- prediction = sdk.predict({"instances": [0.2, 0.8]})
+- confidence = prediction["confidence"]
++ outcome = bind_vendor(sdk.predict)(PredictRequest(features=(0.2, 0.8)))
++ confidence = outcome.confidence
+```
 
-The boundary needs three separate responsibilities:
+**Why better:** an untyped response lets the caller assume success. The adapter
+returns `Prediction | CallFailed | InvalidResponse`, so direct `.confidence`
+access is rejected as `missing-attribute` until the caller narrows the outcome.
+Malformed vendor data still requires runtime validation; the checker protects
+how application code uses the validated outcome.
 
-1. **Encode a typed request** into the vendor's dictionary schema. Keep vendor keys
-   out of the application. Copy mutable payload members when the SDK may mutate them.
-2. **Invoke the dependency** in a small exception boundary. Translate ordinary SDK
-   exceptions into an explicit outcome, preserving their cause.
-3. **Validate the unknown response** into a domain value. Until validation succeeds,
-   keep the unknown result inside the adapter, regardless of vendor annotations.
-
-For example, a response with confidence `"0.8"`, `True`, `NaN`, or `1.1` must not
-quietly become a valid prediction. Pydantic validates finite confidence in
-`[0, 1]` with strict mode and forbids extra fields. Strict float validation accepts
-integer endpoints `0` and `1`, converting them to floats, but rejects boolean and
-text values. Strictness is a schema policy, not an exact Python-class check;
-test any vendor-specific numeric scalar types before accepting them.
+The adapter below copies the request payload, contains the vendor call, and
+validates finite confidence in `[0, 1]`. It rejects `"0.8"`, `True`, `NaN`, and
+`1.1`; strict float validation accepts integer endpoints `0` and `1`.
 
 [Source](../examples/third_party_boundary.py)
 
@@ -230,17 +227,17 @@ keep it in the adapter and document exactly what remains unchecked.
 
 ## Restrict dynamic attribute access
 
-Keep `getattr`, `setattr`, `hasattr`, and `delattr` out of ordinary application
-logic. They replace declared field or capability contracts with runtime attribute
-names. Do not use `vars`, `__dict__`, or dynamic attribute hooks to bypass the
-same restriction.
+```diff
+- retries = getattr(config, "retrise", 3)
++ retries = config.retrise
+```
 
-For example, `getattr(config, "retries", 3)` can silently select three retries
-when the configuration field is missing or renamed. `config.retries` makes that
-field part of the checked contract. Defaults belong in the configuration model,
-where their policy is explicit, rather than at every read site.
+**Why better:** for a typed config declaring `retries`, the typo previously selected
+`3` silently. Direct access is rejected as `missing-attribute`; the correct access
+is `config.retries`. Keep defaults in the declared model.
 
-Choose a replacement that expresses the actual operation:
+Restrict `getattr`, `setattr`, `hasattr`, `delattr`, and equivalent reflection to
+necessary adapters or tests. Use these replacements in application logic:
 
 | Dynamic pattern | Prefer |
 | --- | --- |

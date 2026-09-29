@@ -4,15 +4,17 @@
 
 ## Parse untrusted data into a precise record
 
-**Mistake:** a JSON dictionary is annotated as a job configuration and passed
-downstream without checking its fields. An annotation or `cast` does not validate
-a payload.
+```diff
+- metadata: dict[str, str | int] = {"name": "report", "workers": 4}
++ metadata: JobMetadata = parse_metadata('{"name": "report", "workers": 4}')
+  workers = metadata["worker_count"]
+```
 
-Accept the concrete external representation, here JSON text, and parse it directly
-with Pydantic. Do not expose `Any` or `object` in application APIs. Use a
-`TypeAdapter` over a `TypedDict` when consumers need an ordinary dictionary, or a
-`BaseModel` when a model object is useful. Internal domain records can remain
-dataclasses; validation does not require carrying Pydantic through every function.
+**Why better:** before, the misspelled key raises `KeyError` only when read.
+After, the same access is rejected as `bad-typed-dict-key`: `JobMetadata` declares
+`workers`, not `worker_count`. The valid access is `metadata["workers"]`.
+Pydantic still validates the external JSON at runtime; the record type protects
+subsequent field access.
 
 [Source](../examples/validated_records.py)
 
@@ -50,10 +52,6 @@ workers = metadata["workers"]
 
 **Result:** `metadata` is `{"name": "report", "workers": 4}` and `workers` is `4`.
 
-**Static guarantee:** consumers know the required keys and their types. Misspelled
-keys, incomplete typed records, and raw dictionary arguments to the JSON parser
-are rejected.
-
 **Runtime obligation:** only the parser establishes that the external value satisfies
 the schema. Malformed JSON and invalid fields raise `ValidationError`.
 This example loads configuration once at startup; invalid configuration stops
@@ -68,21 +66,24 @@ Parse dates into
 
 ## Model alternatives as alternatives
 
-A tagged union pairs each alternative with only the fields it needs. For example,
-an email destination needs an address, while a file destination needs a path;
-one record with both fields optional also admits neither or both.
+```diff
+- @dataclass
+- class Task:
+-     kind: str
+-     num_classes: int | None = None
+-     huber_delta: float | None = None
+- task = Task(kind="classification", huber_delta=0.5)
++ task = Classification(huber_delta=0.5)
+```
 
-The executable example applies this idea to two prediction tasks. A classifier
-chooses a category and needs a class count. A regression model predicts a number;
-here its error calculation needs a positive threshold. No training code is needed
-for the lesson: focus on which fields belong to each alternative.
+**Why better:** before, the type permits classification without a class count
+and with a regression-only option. After, the checker rejects that construction:
+`num_classes` is missing and `huber_delta` is unexpected. The valid construction
+is `Classification(num_classes=10)`.
 
-**Mistake:** one configuration has a string `task`, an optional `num_classes`, and
-an optional regression threshold. It admits meaningless combinations.
-
-Give each task its own fields and a literal `kind` tag. Pydantic's **discriminated
-union** uses that tag to select the schema at runtime; the Python union lets
-Pyrefly check downstream handling. These are separate guarantees.
+A classifier chooses a category; regression predicts a number. Each variant below
+has only its own settings. The literal `kind` tag selects a schema for external
+JSON; the union lets the checker distinguish the resulting types.
 
 [Source](../examples/task_variants.py)
 
@@ -139,9 +140,7 @@ loss = loss_name(task)
 # rejected[bad-argument-type]: parse_task({})
 ```
 
-**Static guarantee:** each variant has the right fields; unknown constructor
-arguments fail checking. A plain `Enum` works for labels without associated data;
-record variants also carry data.
+A plain `Enum` works for alternatives without associated fields.
 
 **Runtime obligation:** the type `int` does not establish a positive class count.
 Construction validates the numerical constraint. Like the startup parser above,
@@ -166,11 +165,20 @@ Keep these configuration models outside compiled inference functions; see the
 
 ## Make matching exhaustive
 
-**Mistake:** segmentation is added to a task union, but an old dispatcher silently
-falls through to a default loss.
+```diff
+  match split:
+      case "train":
+          return True
+      case "validation" | "test":
+          return False
+      case _:
+-         return False
++         assert_never(split)
+```
 
-End dispatch over a closed union with `assert_never`. The checker must prove that
-no variant reaches that branch. A wildcard returning a default value loses this check.
+**Why better:** adding `"holdout"` to `Split` previously selected the default
+silently. Now the checker rejects `assert_never(split)` because `"holdout"` is
+still possible. The author must decide how the new split behaves.
 
 [Source](../examples/exhaustive_matching.py)
 
@@ -197,75 +205,50 @@ allowed = may_fit_preprocessor("train")
 # rejected[bad-argument-type]: may_fit_preprocessor("holdout")
 ```
 
-**Static guarantee:** an unsupported literal cannot be passed. Extend `Split` with
-`"holdout"` without updating the match and Pyrefly rejects `assert_never(split)`:
-the remaining possibility is no longer `Never`.
-
 **Runtime obligation:** this function does not prove that a dataset called `"train"`
 contains training-only data, or that a caller uses the returned decision. Provenance
 and leakage checks remain necessary. `assert_never` is also a runtime failure if
 unchecked input actually reaches it.
 
-## Optional: nominal tags at controlled boundaries
+## Optional: distinguish identifiers with nominal types
 
-A **nominal tag** distinguishes values by a declared name even when their
-underlying representations match. This scientific example distinguishes raw
-prediction scores (*logits*) from probabilities. The softmax calculation converts
-scores to positive weights that sum to one.
+```diff
+- def order_reference(customer_id: int, order_id: int) -> str:
++ def order_reference(customer_id: CustomerId, order_id: OrderId) -> str:
+      ...
+  order_reference(order_id, customer_id)
+```
 
-`NewType` can prevent interchange at an API you control. It is not the default
-recommendation for numerical code. The small example below demonstrates the typing
-mechanism; its tuple-based softmax is not a proposed tensor or training API.
-
-Consider a nominal tag only when callers can introduce it at a small number of
-trusted boundaries and then use it without repeated relabeling. If ordinary
-operations keep losing the tag and require new annotations or wrapping, prefer
-the native type and a clearer API.
+**Why better:** both identifiers are integers, so the old signature accepts them
+in the wrong order. Distinct `NewType` names make the swapped call a
+`bad-argument-type` error. The valid call produces `"customer:7/order:42"`.
 
 [Source](../examples/semantic_types.py)
 
 ```python
-"""Distinguish raw classifier scores from normalized probabilities."""
+"""Reject swapped identifiers even when both are stored as integers."""
 
-from math import exp, isfinite
 from typing import NewType
 
-Logits = NewType("Logits", tuple[float, ...])
-Probabilities = NewType("Probabilities", tuple[float, ...])
+CustomerId = NewType("CustomerId", int)
+OrderId = NewType("OrderId", int)
 
 
-def softmax(scores: Logits) -> Probabilities:
-    """Normalize finite, nonempty scores; raise ValueError for invalid input."""
-    if not scores or not all(isfinite(score) for score in scores):
-        raise ValueError("scores must be nonempty and finite")
-    largest = max(scores)
-    weights = tuple(exp(score - largest) for score in scores)
-    total = sum(weights)
-    return Probabilities(tuple(weight / total for weight in weights))
+def order_reference(customer_id: CustomerId, order_id: OrderId) -> str:
+    """Format an order reference without checking existence or ownership."""
+    return f"customer:{customer_id}/order:{order_id}"
 
 
-raw = Logits((2.0, -1.0, 0.5))
-probabilities = softmax(raw)
-# rejected[bad-argument-type]: softmax(probabilities)
-# rejected[bad-argument-type]: softmax((2.0, -1.0, 0.5))
+customer_id = CustomerId(7)
+order_id = OrderId(42)
+reference = order_reference(customer_id, order_id)
+# rejected[bad-argument-type]: order_reference(order_id, customer_id)
+# rejected[bad-argument-type]: order_reference(7, 42)
 ```
 
-**What this example proves:** this particular function rejects an untagged tuple
-and the other nominal type. It does not prove that the scores are logits.
-`Logits(...)` does not validate or copy its input, and normal operations need not
-preserve a newtype. See [Python's NewType documentation](https://docs.python.org/3.11/library/typing.html#newtype).
-
-**Failure policy:** this internal calculation requires nonempty, finite scores.
-Violating that assumption stops the calculation; it does not produce a fallback
-distribution. Handle recoverable input rejection at the application's boundary.
-
-**Why this is usually a poor tensor strategy:** framework operations use their
-own tensor signatures, not application-specific `Logits`/`Probabilities` tags.
-Maintaining those distinctions throughout a model can require a parallel layer of
-wrappers and repeated assertions about meaning. A caller can still mislabel a
-value, so that maintenance does not buy a proof of numerical correctness.
-
-For ordinary model code, keep native tensors, descriptive arguments and batch
-fields, explicit model/loss APIs, and behavioral tests. Names alone do not provide
-static protection against mixing logits and probabilities; acknowledge that gap
-instead of presenting this toy example as a general solution.
+**Limit:** `NewType` changes the static contract, not the runtime integer.
+`CustomerId(42)` cannot prove that 42 identifies a customer or that an order
+belongs to them. Establish those facts at the database or input boundary.
+Use this pattern for distinct identities that survive through an API; numerical
+arrays and tensors should retain their framework's native types.
+[NewType documentation](https://docs.python.org/3.11/library/typing.html#newtype).

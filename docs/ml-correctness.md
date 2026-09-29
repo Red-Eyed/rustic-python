@@ -15,26 +15,27 @@ semantic label.
 
 ## Validation before compiled inference
 
-Validate external configuration with Pydantic and load environment settings with
-pydantic-settings **before** entering the numerical core. Pass native tensors and
-plain records such as `NamedTuple` inputs and `TypedDict` outputs through model
-execution. A `TypedDict` is an ordinary dictionary at runtime.
+```diff
+- parameters: InferenceConfig = InferenceConfig.model_validate_json(payload)
++ parameters: InferenceParameters = prepare_inference(payload)
+  temperature = parameters.temprature
+```
 
-Keep `BaseModel` construction, `TypeAdapter`, settings reads, validation decorators,
-and model serialization outside `torch.compile` regions. Do not assume Dynamo can
-trace Pydantic internals. Nor are named tuples and dictionaries the only possible
-supported containers: compatibility depends on the operations and PyTorch version.
+**Static benefit:** both precise records reject the misspelled field. The change
+adds no tensor guarantee; it separates external validation from the model's plain
+configuration. Assigning an `InferenceConfig` to `InferenceParameters` is also
+rejected, making the handoff explicit.
 
-This executable example demonstrates the handoff using small scalar tuples. It
-does not import PyTorch or establish `torch.compile` compatibility. In an actual
-model, keep tensors as tensors instead of converting their contents to Python.
+**Runtime benefit:** parse settings once before model execution. Keep Pydantic
+construction, environment reads, and serialization outside compiled regions.
+Model inputs and outputs remain native tensors; this example only prepares settings.
 
 [Source](../examples/inference_boundary.py)
 
 ```python
-"""Validate inference options once, then pass plain records to a numerical core."""
+"""Validate inference settings before handing plain parameters to model code."""
 
-from typing import Annotated, NamedTuple, TypedDict
+from typing import Annotated, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat
 
@@ -52,46 +53,28 @@ class InferenceParameters(NamedTuple):
     temperature: float
 
 
-class InferenceOutput(TypedDict):
-    """Describe the plain dictionary returned by the numerical core."""
-
-    scaled_logits: tuple[float, ...]
-
-
 def prepare_inference(payload: str) -> InferenceParameters:
-    """Parse JSON options or raise ValidationError, then create plain parameters."""
+    """Parse startup options; invalid configuration aborts with ValidationError."""
     config = InferenceConfig.model_validate_json(payload)
     return InferenceParameters(temperature=config.temperature)
 
 
-def scale_logits(
-    logits: tuple[float, ...], parameters: InferenceParameters
-) -> InferenceOutput:
-    """Scale scores using prepared options; perform no parsing or validation."""
-    return {"scaled_logits": tuple(value / parameters.temperature for value in logits)}
-
-
 parameters = prepare_inference('{"temperature": 2.0}')
-output = scale_logits((2.0, -2.0), parameters)
-# rejected[bad-typed-dict-key]: scores = output["probabilities"]
-# rejected[bad-argument-type]: scale_logits((2.0,), InferenceConfig(temperature=2.0))
+temperature: float = parameters.temperature
+# rejected[missing-attribute]: temperature = parameters.temprature
+# rejected[bad-assignment]: wrong: InferenceParameters = InferenceConfig(temperature=2.0)
 # rejected[bad-argument-type]: prepare_inference({})
 ```
 
-**Static guarantee:** callers cannot substitute the Pydantic config for the
-declared inference parameters, or read a nonexistent output field.
+**Result:** `parameters` is `InferenceParameters(temperature=2.0)` and
+`temperature` is `2.0`. Invalid startup options raise `ValidationError` and abort
+setup. A service supporting rejected requests should expose a typed failure at
+its boundary instead.
 
-**Failure policy:** invalid startup options abort inference setup here. A service
-that supports rejecting a request and continuing should translate validation
-errors into a typed outcome before calling the numerical core.
-
-**Runtime obligation:** only `prepare_inference` validates temperature. Directly
-constructing `InferenceParameters(0.0)` bypasses that guarantee; plain records are
-not proof objects. The core also assumes its scores are suitable for the operation.
-Validate shape, dtype, device, and value requirements at appropriate admission
-points, with tests for numerical outputs. Avoid adding `.tolist()`, `.item()`, or
-full-tensor scans per step just to route tensors through a schema validator.
-`arbitrary_types_allowed=True` checks a tensor object's type, not its shape or values.
+**Limit:** constructing `InferenceParameters(0.0)` directly bypasses validation.
+The record is not proof that the scalar or any tensor values are valid. This
+example makes no claim about graph capture; native tensors and plain records
+still need verification with the actual framework and operations.
 
 In a PyTorch application, compare eager and compiled outputs on representative
 inputs, and test `torch.compile(fullgraph=True)` when claiming execution without

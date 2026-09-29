@@ -4,16 +4,19 @@
 
 ## Encode preprocessing state in the type
 
-State-dependent APIs occur in connections, transactions, and data processing.
-If a method works only after setup, separate types can make it unavailable before
-setup. Here a *centerer* subtracts a previously calculated mean: fitting on
-`(2, 4, 6)` establishes a mean of `4`, so transforming `5` gives `1`.
+```diff
+- centerer = Centerer()  # One class exposes fit and transform in every state.
+- centered = centerer.transform(5.0)  # Runtime: not fitted.
++ unfitted = UnfittedCenterer()
++ unfitted.transform(5.0)  # Checker: missing-attribute.
++ fitted = unfitted.fit((2.0, 4.0, 6.0))
++ centered = fitted.transform(5.0)  # 1.0
+```
 
-**Mistake:** a scaler exposes `transform` before it has statistics, using
-`mean: float | None` and a runtime "not fitted" exception.
-
-Return a different type after fitting. Here a one-dimensional mean-centering
-transform makes the state transition explicit.
+**Why better:** before, callers must remember to fit first. After, the unfitted
+type has no `transform` method, so the checker rejects the wrong order. Fitting
+returns the type that permits transformation. This centerer subtracts the fitted
+mean: `(2, 4, 6)` has mean `4`, and `5 - 4` is `1`.
 
 [Source](../examples/preprocessing_state.py)
 
@@ -55,9 +58,6 @@ centered = fitted.transform(5.0)
 # rejected[missing-attribute]: unfitted.transform(5.0)
 ```
 
-**Static guarantee:** `UnfittedCenterer` has no transformation operation. Callers
-working through this API must obtain a fitted value first.
-
 **Failure policy:** fitting an empty or nonfinite internal training set stops
 this operation; it offers no fallback model. Its exceptions signal unmet
 preconditions. An ingestion workflow that supports rejecting bad rows should
@@ -70,10 +70,21 @@ of training provenance. Validation-only fitting is still leakage even if it type
 
 ## Preserve relationships with generics
 
-**Mistake:** a helper accepts and returns `object`, erasing what kind of item it
-contains. Callers then cast the result back to the type they hoped to receive.
+The original batch stores `head: object`; the generic batch preserves the item type.
 
-Use a type parameter when an output's type depends on an input's type.
+```diff
+- def first(batch: Batch) -> object:
++ def first(batch: Batch[T]) -> T:
+      return batch.head
+```
+
+**Why better:** an `object` return forgets the item type, forcing the caller to
+narrow or cast it. The generic return preserves it: `first(Batch(Job("report")))`
+is a `Job`, and assigning it to `str` is rejected. A cast could conceal that
+mistake; the type parameter makes it checkable.
+
+The batch also requires a `head`: `Batch()` is rejected as `missing-argument`.
+An optional first item or an empty tuple would leave that precondition to runtime.
 
 [Source](../examples/generic_batches.py)
 
@@ -114,10 +125,6 @@ job: Job = first(batch)
 
 **Result:** `job` is `Job(name="report")`; the batch still contains both jobs.
 
-**Static guarantee:** `first(Batch[Job])` returns a `Job`. A **type parameter** such
-as `T` connects the batch's item type to the function's return type. Construction
-requires `head`, so `Batch()` is rejected before execution.
-
 **Runtime obligation:** this representation starts with an item already available.
 An external collection can still be empty: its adapter must either return a typed
 absence/failure or construct a batch from a validated first item. Do not turn an
@@ -127,8 +134,17 @@ relationships; they do not make execution faster.
 
 ## Be precise about immutability
 
-**Mistake:** a supposedly frozen experiment config holds a mutable list, and a later
-augmentation step changes it through an alias.
+```diff
+- features: list[str] = ["height", "width"]
+- features.append("area")
++ features: tuple[str, ...] = ("height", "width")
++ features.append("area")
+```
+
+**Why better:** freezing a record still allows mutation of a contained list.
+With a tuple field, the checker rejects `.append` as `missing-attribute`.
+The complete settings model also rejects field reassignment; neither guarantee
+extends to mutable objects nested inside a frozen record.
 
 [Source](../examples/immutable_config.py)
 

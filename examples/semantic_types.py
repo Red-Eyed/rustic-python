@@ -1,23 +1,18 @@
-"""Distinguish raw classifier scores from normalized probabilities."""
+"""Reject swapped identifiers even when both are stored as integers."""
 
-from math import exp, isfinite
 from typing import NewType
 
-Logits = NewType("Logits", tuple[float, ...])
-Probabilities = NewType("Probabilities", tuple[float, ...])
+CustomerId = NewType("CustomerId", int)
+OrderId = NewType("OrderId", int)
 
 
-def softmax(scores: Logits) -> Probabilities:
-    """Normalize finite, nonempty scores; raise ValueError for invalid input."""
-    if not scores or not all(isfinite(score) for score in scores):
-        raise ValueError("scores must be nonempty and finite")
-    largest = max(scores)
-    weights = tuple(exp(score - largest) for score in scores)
-    total = sum(weights)
-    return Probabilities(tuple(weight / total for weight in weights))
+def order_reference(customer_id: CustomerId, order_id: OrderId) -> str:
+    """Format an order reference without checking existence or ownership."""
+    return f"customer:{customer_id}/order:{order_id}"
 
 
-raw = Logits((2.0, -1.0, 0.5))
-probabilities = softmax(raw)
-# rejected[bad-argument-type]: softmax(probabilities)
-# rejected[bad-argument-type]: softmax((2.0, -1.0, 0.5))
+customer_id = CustomerId(7)
+order_id = OrderId(42)
+reference = order_reference(customer_id, order_id)
+# rejected[bad-argument-type]: order_reference(order_id, customer_id)
+# rejected[bad-argument-type]: order_reference(7, 42)

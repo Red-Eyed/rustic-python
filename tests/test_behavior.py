@@ -1,7 +1,6 @@
 """Check the runtime obligations that complement the guide's static contracts."""
 
 import json
-from math import isfinite
 
 import pytest
 from pydantic import JsonValue, ValidationError
@@ -11,24 +10,8 @@ from examples.generic_batches import Batch, first
 from examples.immutable_config import Experiment
 from examples.preprocessing_state import UnfittedCenterer
 from examples.reasoned_absence import Absent, precision
-from examples.semantic_types import Logits, softmax
 from examples.task_variants import Classification, Regression
 from examples.validated_records import parse_metadata
-
-
-def test_softmax_handles_large_scores() -> None:
-    """Large finite logits should normalize without exponential overflow."""
-    result = softmax(Logits((1000.0, 1001.0, 999.0)))
-    assert all(isfinite(value) and 0 <= value <= 1 for value in result)
-    assert sum(result) == pytest.approx(1.0)
-    assert result[1] > result[0] > result[2]
-
-
-@pytest.mark.parametrize("scores", [(), (float("nan"),), (float("inf"),)])
-def test_softmax_rejects_invalid_scores(scores: tuple[float, ...]) -> None:
-    """Runtime validation rejects values that container types cannot exclude."""
-    with pytest.raises(ValueError):
-        softmax(Logits(scores))
 
 
 @pytest.mark.parametrize("raw", ["cat", "-1", "", "7.5"])

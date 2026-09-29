@@ -4,8 +4,17 @@
 
 ## Make expected failures explicit
 
-**Mistake:** a caller must distinguish accepted and rejected labels, but the
-parser returns `-1` or an empty dictionary that hides the rejection reason.
+```diff
+- def parse_label(raw: str) -> int:
++ def parse_label(raw: str) -> Result[int, InvalidLabel]:
+      ...
+  label: int = parse_label("cat")
+```
+
+**Why better:** before, malformed input can raise at runtime or return a sentinel
+such as `-1` that looks like a valid integer to the checker. After, assigning the
+outcome to `int` is rejected as `bad-assignment`. The caller must distinguish
+`Ok` from `Err` before consuming a label. The complete parser follows below.
 
 Use typed outcomes when the caller can retry, choose a fallback, correct input,
 or reject a record and continue. Use exceptions when the operation has no
@@ -153,11 +162,16 @@ Do not assume exception objects survive serialization or process boundaries.
 
 ## Preserve the reason a value is absent
 
-**Mistake:** precision with no predicted positives is recorded as `0.0`. That makes
-"undefined" indistinguishable from "all positive predictions were wrong."
+```diff
+  if predicted_positives == 0:
+-     return 0.0
++     return Absent("no predicted positives")
+```
 
-Python's `float | None` is a checked union, not an untyped null pointer. But `None`
-does not explain absence. Use a reason-carrying variant when the distinction matters.
+**Why better:** before, an undefined metric looks like a valid score. After, the
+return type is `float | Absent`; assigning it directly to `float` is rejected.
+The caller must distinguish absence from zero. `float | None` would also require
+narrowing, but would not carry the reason.
 
 [Source](../examples/reasoned_absence.py)
 

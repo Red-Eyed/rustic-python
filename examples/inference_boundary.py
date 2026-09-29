@@ -1,6 +1,6 @@
-"""Validate inference options once, then pass plain records to a numerical core."""
+"""Validate inference settings before handing plain parameters to model code."""
 
-from typing import Annotated, NamedTuple, TypedDict
+from typing import Annotated, NamedTuple
 
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat
 
@@ -18,27 +18,14 @@ class InferenceParameters(NamedTuple):
     temperature: float
 
 
-class InferenceOutput(TypedDict):
-    """Describe the plain dictionary returned by the numerical core."""
-
-    scaled_logits: tuple[float, ...]
-
-
 def prepare_inference(payload: str) -> InferenceParameters:
-    """Parse JSON options or raise ValidationError, then create plain parameters."""
+    """Parse startup options; invalid configuration aborts with ValidationError."""
     config = InferenceConfig.model_validate_json(payload)
     return InferenceParameters(temperature=config.temperature)
 
 
-def scale_logits(
-    logits: tuple[float, ...], parameters: InferenceParameters
-) -> InferenceOutput:
-    """Scale scores using prepared options; perform no parsing or validation."""
-    return {"scaled_logits": tuple(value / parameters.temperature for value in logits)}
-
-
 parameters = prepare_inference('{"temperature": 2.0}')
-output = scale_logits((2.0, -2.0), parameters)
-# rejected[bad-typed-dict-key]: scores = output["probabilities"]
-# rejected[bad-argument-type]: scale_logits((2.0,), InferenceConfig(temperature=2.0))
+temperature: float = parameters.temperature
+# rejected[missing-attribute]: temperature = parameters.temprature
+# rejected[bad-assignment]: wrong: InferenceParameters = InferenceConfig(temperature=2.0)
 # rejected[bad-argument-type]: prepare_inference({})

@@ -11,10 +11,12 @@ relative filenames and heading anchors rather than references to numbered sectio
 
 Add independent sections using this structure:
 
-1. A concrete API or data-model mistake and a small example. Use familiar
-   application scenarios for foundations; explain any domain knowledge needed by
-   ML or other specialist applications.
-2. A self-contained passing snippet with all imports and documented contracts.
+1. Before/after code showing one concrete mistake. Prefer a short diff of changed
+   lines, followed by the complete improved implementation. Replace the prose
+   description of the mistake with this comparison.
+2. A brief “why better”: identify the misuse previously possible at runtime and
+   the exact operation the checker now rejects. Label runtime-only improvements
+   honestly. The complete snippet includes all imports and its contract.
 3. A nearby `# rejected[diagnostic-kind]:` example that isolates the promised static
    rejection. Separate multiple expected kinds with commas.
 4. A precise statement of the static guarantee, with the rejected operation,
@@ -36,6 +38,9 @@ design principles from the reference tool stack. Keep development history in the
 changelog; turn past bugs into lasting lessons rather than review narratives.
 Keep one explanation and one useful example per idea. Remove repeated policy
 reminders, chapter summaries, and background that does not change a decision.
+Use realistic domains for type distinctions, such as customer and order IDs.
+Keep numerical APIs on native tensors; do not manufacture tuple-based softmax
+implementations or nominal tensor wrappers to make a typing point.
 The detailed chapter owns the rationale. Keep the checklist and agent entry points
 short, linking to that chapter instead of repeating its full policy.
 

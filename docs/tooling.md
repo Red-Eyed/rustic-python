@@ -7,6 +7,10 @@ optional; no Python installation, terminal, or repository clone is needed.
 
 ## Passing and rejected cases
 
+In before/after code changes, `-` marks the old code and `+` the replacement.
+These focused excerpts precede the complete implementation. “Why better” names
+the mistake now rejected by the checker; runtime-only benefits are distinguished.
+
 The [record lesson](data-modeling.md) declares a job name and worker count:
 
 | Expression or input | Result | Why |

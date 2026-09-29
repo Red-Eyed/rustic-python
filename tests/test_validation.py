@@ -12,7 +12,6 @@ from examples.immutable_config import Experiment
 from examples.inference_boundary import (
     InferenceParameters,
     prepare_inference,
-    scale_logits,
 )
 from examples.task_variants import (
     Classification,
@@ -141,9 +140,7 @@ def test_inference_receives_plain_records() -> None:
     parameters = prepare_inference(json.dumps({"temperature": 2.0}))
     assert isinstance(parameters, InferenceParameters)
     assert isinstance(parameters, tuple)
-    output = scale_logits((2.0, -2.0), parameters)
-    assert type(output) is dict
-    assert output == {"scaled_logits": (1.0, -1.0)}
+    assert parameters.temperature == 2.0
 
 
 @pytest.mark.parametrize("temperature", [0, -1.0, float("nan"), True, "2.0"])
