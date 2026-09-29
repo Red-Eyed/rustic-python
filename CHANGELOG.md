@@ -2,6 +2,17 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [0872778](https://github.com/Red-Eyed/rustic-python/commit/0872778) — 2026-09-29
+
+**Focused, example-first lessons — 0.7.0**
+
+- Split broad chapters into short concept pages. Each lesson now starts with a
+  situation and familiar Python code, then shows an alternative and its benefit.
+- Replace the undefined precision sentinel with a typed `Result` handled by
+  `match`, so zero and an unavailable score remain distinct.
+- Refresh book navigation, contributor guidance, and the portable skill's topic
+  links; keep the project and lockfile versions synchronized.
+
 ## [bb2eb76](https://github.com/Red-Eyed/rustic-python/commit/bb2eb764f96560e5242ff1f1f89b6dbe6d9ad72d) — 2026-09-29
 
 **Learn static contracts through before/after code — 0.6.2**
