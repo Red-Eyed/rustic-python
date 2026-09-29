@@ -2,6 +2,18 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [bb2eb76](https://github.com/Red-Eyed/rustic-python/commit/bb2eb764f96560e5242ff1f1f89b6dbe6d9ad72d) — 2026-09-29
+
+**Learn static contracts through before/after code — 0.6.2**
+
+- Lead core lessons with code comparisons showing the specific misuse that moves
+  from runtime to a checker error. Distinguish runtime-only improvements.
+- Replace the nominal `Logits`/`Probabilities` softmax example with `CustomerId`
+  and `OrderId`: the checker rejects swapped identifiers and untagged integers.
+- Remove `scale_logits` and `InferenceOutput` from the inference example; retain
+  validated settings and their plain-record handoff. Numerical APIs should use
+  native tensors, not the removed tuple-based stand-ins.
+
 ## [47214d9](https://github.com/Red-Eyed/rustic-python/commit/47214d93565dc6c9c7cc4fddd973bade442362a0) — 2026-09-29
 
 **A self-contained, shorter book — 0.6.1**
