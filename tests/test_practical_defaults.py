@@ -3,7 +3,13 @@
 import pytest
 
 from examples.practical_defaults import batch_count
-from examples.reasoned_absence import Absent, format_precision
+from examples.reasoned_absence import (
+    Err,
+    NoPredictedPositives,
+    Ok,
+    Result,
+    format_precision,
+)
 
 
 @pytest.mark.parametrize(
@@ -40,14 +46,17 @@ def test_booleans_are_not_counts(samples: int, size: int) -> None:
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        pytest.param(0, "0.000", id="integer-zero"),
-        pytest.param(0.0, "0.000", id="float-zero"),
-        pytest.param(0.5, "0.500", id="fraction"),
+        pytest.param(Ok(0.0), "0.000", id="zero"),
+        pytest.param(Ok(0.5), "0.500", id="fraction"),
         pytest.param(
-            Absent("no predictions"), "undefined: no predictions", id="absent"
+            Err(NoPredictedPositives()),
+            "undefined: no predicted positives",
+            id="undefined",
         ),
     ],
 )
-def test_numeric_metric_formatting(value: float | Absent, expected: str) -> None:
+def test_numeric_metric_formatting(
+    value: Result[float, NoPredictedPositives], expected: str
+) -> None:
     """Honor the annotated numeric contract without confusing zero and absence."""
     assert format_precision(value) == expected

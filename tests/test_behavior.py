@@ -5,11 +5,11 @@ import json
 import pytest
 from pydantic import JsonValue, ValidationError
 
+from examples import reasoned_absence as metrics
 from examples.explicit_results import Err, InvalidLabel, Ok, parse_label
 from examples.generic_batches import Batch, first
 from examples.immutable_config import Experiment
 from examples.preprocessing_state import UnfittedCenterer
-from examples.reasoned_absence import Absent, precision
 from examples.task_variants import Classification, Regression
 from examples.validated_records import parse_metadata
 
@@ -34,8 +34,8 @@ def test_numeric_label_text_is_valid(raw: str, expected: int) -> None:
 
 def test_undefined_precision_differs_from_zero() -> None:
     """An empty denominator and incorrect positive predictions remain distinct."""
-    assert precision(0, 0) == Absent("no predicted positives")
-    assert precision(0, 12) == 0.0
+    assert metrics.precision(0, 0) == metrics.Err(metrics.NoPredictedPositives())
+    assert metrics.precision(0, 12) == metrics.Ok(0.0)
 
 
 @pytest.mark.parametrize(

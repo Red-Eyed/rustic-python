@@ -23,11 +23,9 @@ the host may ask for its normal permissions.
 
 ## Use it
 
-| Host | Example |
-| --- | --- |
-| Codex | `$rustic-python review this preprocessing pipeline` |
-| Claude Code | `/rustic-python review this preprocessing pipeline` |
-| Cline | Select `/rustic-python` in chat and request the review |
+In Codex, use `$rustic-python review this API`. In Claude Code, use
+`/rustic-python review this API`. In Cline, select `/rustic-python` in chat
+and request the review.
 
 The skill loads relevant chapters on demand. Installing it does not load the
 whole book into every conversation or replace your project's instructions.

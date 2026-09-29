@@ -1,0 +1,88 @@
+# Variants instead of optional fields
+
+[Project overview and reading path](../README.md)
+
+A service supports classification and regression. Classification needs a class count; regression needs a positive error threshold. A request must select exactly one.
+
+**Typical Python**
+
+```text
+from dataclasses import dataclass
+
+@dataclass
+class Task:
+    kind: str
+    num_classes: int | None = None
+    huber_delta: float | None = None
+
+task = Task(kind="classification", huber_delta=0.5)
+```
+
+This well-typed object lacks the classifier setting and contains an unrelated regression setting. The error is left for later code to discover.
+
+**Alternative**
+
+[Source](../examples/task_variants.py)
+
+```python
+"""Represent classification and regression with task-specific configuration."""
+
+from typing import Annotated, Literal, TypeAlias, assert_never, final
+
+from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, TypeAdapter
+
+
+@final
+class Classification(BaseModel, frozen=True):
+    """Configure a classifier with at least two output classes."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+    kind: Literal["classification"] = "classification"
+    num_classes: Annotated[int, Field(ge=2)]
+
+
+@final
+class Regression(BaseModel, frozen=True):
+    """Configure Huber loss with a finite positive transition threshold."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+    kind: Literal["regression"] = "regression"
+    huber_delta: Annotated[FiniteFloat, Field(gt=0)]
+
+
+Task: TypeAlias = Annotated[Classification | Regression, Field(discriminator="kind")]
+TASK = TypeAdapter[Task](Task)
+
+
+def parse_task(payload: str) -> Task:
+    """Parse tagged JSON and validate its fields, or raise ValidationError."""
+    return TASK.validate_json(payload)
+
+
+def loss_name(task: Task) -> str:
+    """Select the loss family for every supported task variant."""
+    match task:
+        case Classification():
+            return "cross_entropy"
+        case Regression():
+            return "huber"
+        case _:
+            assert_never(task)
+
+
+task = parse_task('{"kind": "classification", "num_classes": 10}')
+loss = loss_name(task)
+# rejected[missing-argument,unexpected-keyword]: Classification(huber_delta=1.0)
+# rejected[missing-argument,unexpected-keyword]: Regression(num_classes=10)
+# rejected[bad-argument-type]: parse_task({})
+```
+
+`Classification(huber_delta=0.5)` is rejected: `num_classes` is missing and
+`huber_delta` is unexpected. `Classification(num_classes=10)` is valid.
+Each variant owns only its relevant fields.
+
+For JSON input, the `kind` tag selects the runtime schema. Missing or unknown
+tags and mismatched fields raise `ValidationError`; this startup parser has no
+recovery branch. The checker cannot establish positive numbers or validate JSON.
+`@final` prevents checked subclassing, not runtime class manipulation.
+Use a literal or enum when an alternative needs no associated fields.

@@ -1,25 +1,21 @@
-# Supplementary libraries
+# Typed iterators and deferred failures
 
 [Project overview and reading path](../README.md)
 
-| Need | Library to consider | What it contributes | What remains outside its guarantee |
-| --- | --- | --- | --- |
-| Batching and iterator transformations | [more-itertools](https://more-itertools.readthedocs.io/en/stable/) | Reusable iterable algorithms | Batch length, exhaustion, and buffering remain runtime concerns |
-| Required boundary validation and SDK payloads | [Pydantic](https://docs.pydantic.dev/latest/concepts/strict_mode/) | Models and `TypeAdapter` with an explicit coercion policy | Runtime validation does not make arbitrary incoming data statically safe |
-| Environment configuration and CLIs | [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) | Typed settings and argument models | Source precedence and coercion need an explicit policy |
+A stream must be processed in complete batches while preserving its element type. With five items and batches of two, the final item must not be silently accepted as a full batch.
 
-**Verified here:** Pydantic 2.13.5, pydantic-settings 2.15.0, and more-itertools
-11.1.0. The lockfile records the exact environment; manifest requirements use lower
-bounds. more-itertools is an optional design choice, while boundary validation
-examples use Pydantic consistently.
+**Typical Python**
 
-## more-itertools: preserve element types, specify stream policy
+```text
+def batches(items, size):
+    return [items[start:start + size] for start in range(0, len(items), size)]
 
-Use more-itertools for established iterator algorithms instead of hand-rolled
-buffering loops. For five samples and a batch size of two, `chunked` normally
-yields lengths `2, 2, 1`. With `strict=True`, it raises before yielding the short
-final batch. Earlier batches have already been yielded; this is not an all-or-nothing
-validation of the source. See the [chunked reference](https://more-itertools.readthedocs.io/en/stable/api.html#more_itertools.chunked).
+batches([1, 2, 3, 4, 5], 2)
+```
+
+This produces `[[1, 2], [3, 4], [5]]`. It requires a sized sequence, returns partial batches, and leaves the element type implicit.
+
+**Alternative**
 
 [Source](../examples/iterator_batches.py)
 
@@ -46,46 +42,14 @@ first_batch = next(batches)
 # rejected[bad-assignment]: wrong: Iterator[list[str]] = batches
 ```
 
-**Result:** `first_batch` is `[1, 2]`; the next batch is `[3, 4]`.
+The first batch is `[1, 2]`, followed by `[3, 4]`. The checker preserves
+`Iterator[list[int]]` and rejects assigning it to `Iterator[list[str]]`.
+The example uses more-itertools 11.1.0.
 
-**Static guarantee:** the iterator retains the element type. It cannot
-be assigned to an iterator of string lists.
+Completeness is a runtime policy, not a property of `list[T]`. Invalid size fails
+immediately; an incomplete tail fails during iteration, after earlier batches
+have already been yielded. If partial batches are supported, expose that policy
+instead. Buffered iterator helpers may retain data; account for that on large streams.
 
-**Runtime obligations:** a list's length is not encoded in `list[T]`. Exhaustion,
-partial batches, and exceptions occur during consumption. The wrapper validates
-positive batch size immediately; tests verify the delayed partial-tail failure.
-`peekable` and `seekable` can retain buffered items, so inspect access patterns
-before using them on large or infinite streams.
-
-Prefer standard-library `itertools` where it has the needed operation. For this
-guide's 3.11 baseline, `itertools.batched` is unavailable: it was introduced in
-3.12, with `strict` added in 3.13. [Python's batched documentation](https://docs.python.org/3/library/itertools.html#itertools.batched).
-
-An incomplete batch violates this iterator's contract and stops consumption.
-If callers support partial batches, represent that decision explicitly.
-
-## Validation libraries complement static checking
-
-Use Pydantic at external boundaries and pydantic-settings for shared configuration
-and CLI schemas. The [data](data-modeling.md) and [settings](state-and-generics.md)
-chapters cover them; internal records need not carry these dependencies.
-
-Choose coercion deliberately. Strict float fields still accept integers; JSON
-validation can accept date strings that strict Python-object validation rejects.
-Label parsing deliberately accepts numeric text, including `"7.0"` as integer `7`;
-that is a parsing policy, not a claim that all boundaries should coerce. See
-[Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
-
-`model_construct` bypasses validation, and `model_copy(update=...)` does not
-validate the update. Frozen models prevent ordinary field assignment, not mutation
-of a contained tensor or list. Revalidate models from untrusted paths when needed;
-avoid unchecked construction as a routine optimization. Tests must cover the
-actual admission path, not merely a model's happy-path constructor.
-[Pydantic model behavior](https://docs.pydantic.dev/latest/concepts/models/).
-
-## Check the API you use
-
-A library advertising annotations may still infer `Any` or depend on a
-checker-specific plugin. Verify a passing use and a misuse that should be rejected,
-including lazy failures and inferred return types. Choose a library for its needed
-operation; the guide's dependency list is not an application requirement.
+Prefer a standard-library operation when it meets the contract. This guide's
+Python 3.11 baseline predates `itertools.batched`, introduced in 3.12.

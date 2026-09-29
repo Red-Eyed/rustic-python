@@ -1,17 +1,18 @@
-# Edge cases and acceptable simplifications
+# When a plain function is enough
 
 [Project overview and reading path](../README.md)
 
-The patterns in this guide are choices, not requirements to reproduce Rust's APIs
-in Python. Start with the smallest representation that makes the actual contract
-clear. Add structure when an edge case, a second implementation, or a boundary
-requires it. Simplifying a design is acceptable; silently changing its behavior is not.
+A loader needs to count batches. Five items in groups of two means three batches if the tail is kept, or two if it is dropped.
 
-## A simple function can be the right design
+**Typical Python**
 
-For five samples and batches of two, keeping the final partial batch means three
-batches. Dropping it means two. This needs a small calculation and an explicit
-policy, not a `BatchCount` wrapper, strategy hierarchy, or `Result` around every call.
+```text
+batches = sample_count // batch_size
+```
+
+The arithmetic silently drops the tail. A type checker cannot know whether that is the intended policy.
+
+**Alternative**
 
 [Source](../examples/practical_defaults.py)
 
@@ -36,117 +37,11 @@ full_batches_only = batch_count(5, batch_size=2, drop_last=True)
 # rejected[bad-argument-type]: batch_count("5", batch_size=2)
 ```
 
-**What stays simple:** ordinary integers, one function, one keyword-only policy
-flag, and exceptions for violated input preconditions. This helper operates on
-internal counts, not raw user input. The boolean selects a calculation policy; it does
-not hide a lifecycle with different permitted operations. No protocol is needed
-because this helper has no substitution requirement.
+`batch_count(5, batch_size=2)` returns `3`; setting `drop_last=True` returns `2`.
+The signature rejects a string sample count. The tail policy is explicit, but
+its correctness still needs behavioral tests: both possible answers are integers.
 
-**What stays explicit:** zero samples produce zero batches. A zero batch size is
-invalid. A small dataset with `drop_last=True` can produce no batches. Booleans are
-rejected as counts, even though Python's type system allows them where `int` is
-expected. The [tests](../tests/test_practical_defaults.py) exercise these cases.
-
-**What this does not guarantee:** a loader may filter records, shard data, or use a
-different sampling policy. This function counts according to its inputs; it does
-not predict every loader's behavior. Exceptions also do not appear in its return
-type. Treat invalid internal counts as a broken assumption. For external input
-with a supported recovery path, validate at the boundary and return a typed
-failure; otherwise let the failed operation unwind through an exception.
-
-## Acceptable simplifications, and when to stop simplifying
-
-| Simpler choice | Acceptable when | Keep this obligation | Escalate the design when |
-| --- | --- | --- | --- |
-| Native `int`, `float`, array, or tensor | The surrounding API makes its role clear | Validate relevant ranges or shapes and test calculations | Two roles are repeatedly confused at an API boundary and a distinct type can be preserved without constant relabeling |
-| An ordinary function | There is no resource lifecycle or configurable object state to manage | Precise arguments, return type, and failure behavior | State or interchangeable implementations become a real concern |
-| A concrete dependency | There is one implementation and callers do not need substitution | Keep the dependency at the appropriate layer | A second backend or independently injected implementation must satisfy the same contract |
-| A typed callable | The extension point is one operation | Its argument/return contract and error policy | Implementations need several related operations or stateful capabilities |
-| `ValueError` / `TypeError` | The operation has no supported recovery path, such as a broken internal precondition | Keep the failure visible and let the operation unwind; document the precondition | The caller can retry, use a fallback, request corrected input, or reject a record and continue; return a typed outcome |
-| A local `None` from a standard API | It means one local condition, such as a failed lookup, and is handled immediately | An explicit presence check and a typed value after the check | Absence crosses the domain boundary or callers need its reason |
-| A local dictionary | It is a temporary literal or a true homogeneous mapping | No concealed record schema escaping to other helpers | Fixed keys form a shared record; use a `TypedDict`, dataclass, or validated model |
-| A typed field plus a guard | The invalid state is contained within a short operation | Check it before the operation that requires the value | Many callers must repeatedly remember the same state restriction |
-| A boolean option | It selects one clear behavior within the same operation | Named arguments and defined behavior for both choices | Flags interact to admit invalid combinations or represent distinct lifecycles |
-| Local mutation | One operation owns the mutable value and the change is easy to follow | Avoid leaking mutable aliases and document observable mutation | Other components retain the same object or concurrent use is possible |
-| One boundary validation pass | Ownership or immutability preserves the validated facts | Do not assume mutable data stays valid after other code changes it | Data is mutated or crosses another trust boundary |
-| Direct test setup | It is small, local, and owns no shared resource lifetime | Keep the action and assertions visible | Setup repeats or needs cleanup; introduce fixtures |
-
-For example, handle `re.search(...)` returning `None` locally; there is no need to
-create a domain error class merely to check whether one pattern matched. This does
-not justify replacing an undefined metric's explanation with an unexplained `None`.
-Similarly, an SDK's loose dictionary is acceptable as a vendor payload inside its
-adapter, not as the unvalidated record passed through the rest of the application.
-
-A function-local variable may rely on useful inference. Public function boundaries
-and shared records still need their contracts. Removing redundant local annotations
-is different from allowing `Any` to erase the return type of an entire component.
-
-## Edge cases that types alone do not settle
-
-Select the relevant cases for each component; not every helper needs every check.
-The table distinguishes existing examples from decisions a new application must make.
-
-| Case | Why the obvious implementation can fail | Decision or evidence |
-| --- | --- | --- |
-| Zero versus absence | `if value` treats a valid zero as missing | The precision tests distinguish zero from an undefined denominator |
-| `bool` versus `int` | `True` can enter an integer-annotated API | The batch-count and metadata tests reject it where counts require actual integers |
-| `int` passed to a `float` parameter | A runtime `float` class pattern does not match an integer | The metric formatter handles both, with regression cases for `0` and `0.0` |
-| NaN and infinity | A float annotation does not mean finite; ordinary comparisons may not express the intended policy | Softmax, configuration, and SDK-response tests validate finiteness where their contracts require it |
-| Empty input | Mean, first-element selection, and batch counting need different policies | Centering rejects an empty training set at runtime; `Batch` requires a first item statically; batch counting returns zero |
-| Partial final batch | Rejecting, retaining, padding, and dropping affect training differently | Batch-count and iterator tests cover their declared policies; do not silently choose one for a caller |
-| Missing, null, extra, or malformed fields | These are different schema conditions | Metadata parsing ignores extras; the SDK adapter requires specific fields and rejects malformed values. Decide whether unknown keys should instead be errors for a particular config |
-| Integer versus string versus scalar wrapper | Coercion may change input meaning or erase an upstream error | The SDK's strict float schema accepts integers but rejects bool and text; settings intentionally parse text. Test each source's policy |
-| Deferred failure | A call can return an iterator successfully and fail later during consumption | Strict chunking tests verify that earlier batches can be consumed before the tail error |
-| Shared mutable data | A frozen outer object does not freeze contained tensors or lists | The SDK test checks payload-copy isolation; real shared arrays need an ownership or copying policy |
-| Unknown plugin or future variant | Runtime names and a statically closed union are different problems | Registry lookup returns an explicit unknown-name outcome; exhaustive matching tests cover added union variants |
-| Failure after a side effect | Retrying may duplicate work even if an exception looks recoverable | New integrations need an idempotency/recovery policy; the example adapter deliberately makes one call |
-| Cancellation or process failure | Ordinary exception handling is not process isolation | Adapter tests preserve `KeyboardInterrupt`/`SystemExit`; native crashes require different containment |
-| Resource setup fails halfway | Cleanup after an unreached `yield` cannot run | The pytest lesson uses context-managed resources; new multi-resource fixtures must handle partial acquisition |
-| All-masked or otherwise empty effective data | The stored batch is nonempty, but a reduction may have no valid elements | A loss/metric implementation must choose rejection, omission, or a defined result and test it; this guide has no such loss implementation |
-
-Python's numeric typing deliberately permits an `int` argument for a `float`
-parameter. It does not convert the object to a float before your function runs.
-A type-correct call and a runtime class pattern therefore need not line up.
-[Numeric typing rules](https://typing.python.org/en/latest/spec/special-types.html#special-cases-for-float-and-complex).
-
-Likewise, `0`, `0.0`, and empty containers are falsy. Use an explicit absence check
-when emptiness or zero is a legitimate value.
-[Python truth-value rules](https://docs.python.org/3.11/library/stdtypes.html#truth-value-testing).
-
-### Match every runtime representation the annotation accepts
-
-The [metric formatter](../examples/reasoned_absence.py) accepts `float | Absent`.
-A caller may pass `0`, which satisfies the numeric annotation but does not match
-the runtime class pattern `float(score)`. A handler covering only that pattern
-would let the integer reach `assert_never` at runtime. Match both integers and
-floats; the [tests](../tests/test_practical_defaults.py) exercise both representations.
-
-One additional pattern covers the contract without a new numeric class hierarchy.
-When simplifying a handler, preserve every runtime representation admitted by its
-public annotation.
-
-## Work through the decision on a real boundary
-
-Suppose an SDK returns a record with `confidence: "0.8"`.
-
-1. The value is not yet trusted. Keep the unknown SDK result inside its adapter;
-   when the transport provides JSON text, parse that text directly with Pydantic.
-2. Decide whether the SDK contract permits numeric strings. Do not let a convenience
-   validator silently make this product decision.
-3. If strings are forbidden, translate the validator's rejection into a typed
-   schema failure. If permitted, parse once, then validate range and finiteness.
-4. Expose the validated value using the simplest useful domain record. Do not pass
-   a loose dictionary onward just to avoid defining that record.
-5. Test the accepted form and nearby rejected forms: malformed text, NaN, missing
-   key, `True`, and an out-of-range number.
-
-The vendor adapter in this guide rejects the string. That is its explicit policy,
-not a rule that every application must reject numeric strings. The same reasoning
-applies to missing labels, optional fields, partial batches, and unknown config keys.
-
-## Preserve behavior when simplifying
-
-Removing a wrapper is different from dropping rejected records, replacing absence
-with zero, or retrying an operation that may already have changed external state.
-Preserve the failure and data-handling policy. Use the [checklist](checklist.md)
-for review and [checker workarounds](checker-limitations.md) for verified tool defects.
+Ordinary values and one named policy suffice here. Zero samples yield zero
+batches. Nonpositive sizes, negative counts, and booleans violate the internal
+preconditions and raise. Validate recoverable external input at its boundary.
+The helper counts the supplied items; it does not predict filtering or sharding.

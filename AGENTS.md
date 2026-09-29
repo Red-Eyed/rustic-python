@@ -13,8 +13,9 @@ Rust's ownership, borrow checking, or scientific correctness guarantees.
 The reader experience is a self-contained book. Show code, relevant values,
 checker rejections, and their explanations directly in the chapters. Never require
 readers to clone, install Python, open a terminal, or execute/uncomment an example.
-Lead lessons with before/after code and the specific runtime mistake now rejected
-by the type checker. Label runtime-only improvements honestly. Replace prose with
+Lead lessons with a concrete situation, idiomatic Python, the alternative, then
+the specific mistake now rejected by the type checker. Label runtime-only
+improvements honestly. Replace prose with
 focused comparisons; avoid duplicate explanations. Source links are optional
 provenance; maintenance commands belong in the contributor
 appendix, and agent installation belongs in its optional appendix.

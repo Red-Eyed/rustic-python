@@ -45,18 +45,19 @@ claim the latest revision without a successful check.
 
 All paths are relative to this installed skill, not the user's project.
 
-| Task | Read |
-| --- | --- |
-| Choose a proportionate design | [Practical choices](docs/practical-choices.md), [benefits and costs](docs/fundamentals.md) |
-| Model records and alternatives | [Data modeling](docs/data-modeling.md), [errors and absence](docs/errors-and-absence.md) |
-| Add a plugin or extension | [Protocols and composition](docs/oop-and-plugins.md) |
-| Preserve state or generic relationships | [State and generics](docs/state-and-generics.md) |
-| Integrate untyped libraries | [Third-party boundaries](docs/third-party-boundaries.md) |
-| Investigate a checker diagnostic | [Checker limitations](docs/checker-limitations.md) |
-| Work with tensors or scientific results | [ML correctness](docs/ml-correctness.md) |
-| Design tests and fixtures | [pytest practices](docs/testing.md) |
-| Evaluate helper libraries | [Supplementary libraries](docs/libraries.md) |
-| Interpret static guarantees and rejected cases | [Reading examples](docs/tooling.md) |
+- Start with [practical choices](docs/practical-choices.md) and
+  [reading examples](docs/tooling.md).
+- For data, read [validated records](docs/data-modeling.md),
+  [variants](docs/variants.md), [Result and match](docs/errors-and-absence.md),
+  or [undefined metrics](docs/absence.md) as relevant.
+- For APIs, read [protocols](docs/oop-and-plugins.md),
+  [composition](docs/composition.md), [state](docs/state-and-generics.md),
+  or [generics](docs/generics.md).
+- For boundaries, read [SDK adapters](docs/third-party-boundaries.md),
+  [dynamic access](docs/dynamic-access.md), or [settings](docs/settings.md).
+- For checker problems, read [local workarounds](docs/checker-limitations.md).
+- For science and tests, read [tensor limits](docs/ml-correctness.md) and
+  [behavioral tests](docs/testing.md).
 
 ## Configuration templates
 

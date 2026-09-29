@@ -2,47 +2,17 @@
 
 [Project overview and reading path](../README.md)
 
-Code, relevant results, and checker errors appear on the page. Source links are
-optional; no Python installation, terminal, or repository clone is needed.
+Each recommendation follows one situation: typical Python, a better alternative,
+and what changes for the caller. Short sketches omit unrelated setup. Complete
+improved listings include their source and are checked against it automatically.
+You do not need Python, a terminal, or a repository clone.
 
-## Passing and rejected cases
+A line such as `# rejected[bad-typed-dict-key]: workers = metadata["worker_count"]`
+means the checker rejects the statement after the colon. Here the record declares
+`workers`, not `worker_count`. The diagnostic category is shown so the result is
+visible without running anything. These comments are not suppressions.
 
-In before/after code changes, `-` marks the old code and `+` the replacement.
-These focused excerpts precede the complete implementation. “Why better” names
-the mistake now rejected by the checker; runtime-only benefits are distinguished.
-
-The [record lesson](data-modeling.md) declares a job name and worker count:
-
-| Expression or input | Result | Why |
-| --- | --- | --- |
-| `parse_metadata('{"name": "report", "workers": 4}')` | `{"name": "report", "workers": 4}` | Valid input |
-| `metadata["workers"]` | `4`, with static type `int` | Declared field |
-| `metadata["worker_count"]` | `bad-typed-dict-key` | Undeclared field |
-| `broken: JobMetadata = {"name": "report"}` | `bad-typed-dict-key` | Missing required field |
-| `parse_metadata('{"name": "report", "workers": 0}')` | Runtime `ValidationError` | Worker count must be positive |
-
-Listings mark invalid statements like this:
-
-```text
-# rejected[bad-typed-dict-key]: workers = metadata["worker_count"]
-```
-
-The checker rejects the statement after the colon for the named reason.
-These comments show incorrect use; they are not suppressions or exercises to run.
-Assertions show expected behavior: `assert first(batch) == 0` expects zero.
-
-## What the checks establish
-
-- **Static checking** rejects operations inconsistent with declared types.
-- **Runtime validation** checks actual values, such as a positive worker count.
-- **Behavioral tests** check results the types do not prove, such as a calculation.
-
-The examples target Python 3.11+, verified with Pyrefly 1.3.1 and Ruff 0.16.9.
-Pydantic validates inputs; pytest checks behavior. The strict checker profile
-rejects explicit `Any`, missing annotations, and unresolved imports. Ruff handles
-style and suspicious patterns; it does not prove type compatibility.
-
-Automated checks verify the printed listings and each intended rejection.
-A clean check still does not prove exception freedom, ownership, or numerical
-correctness. See [checker limitations](checker-limitations.md) for concrete gaps;
-[contributing](contributing.md) contains the maintenance commands.
+The examples use Python 3.11+, Pyrefly 1.3.1, and Ruff 0.16.9. Pydantic validates
+external inputs; pytest checks behavior. These are the book's reference tools,
+not reader prerequisites. [Contributor checks](contributing.md) verify full listings,
+runtime behavior, and the intended diagnostic for each rejected statement.

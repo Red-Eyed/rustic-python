@@ -1,47 +1,21 @@
-# Errors and absence
+# Result and match
 
 [Project overview and reading path](../README.md)
 
-## Make expected failures explicit
+An importer reads integer labels. A malformed row should be reported while valid rows continue. The caller needs both the parsed value and a way to recognize rejection.
 
-```diff
-- def parse_label(raw: str) -> int:
-+ def parse_label(raw: str) -> Result[int, InvalidLabel]:
-      ...
-  label: int = parse_label("cat")
+**Typical Python**
+
+```text
+def parse_label(raw: str) -> int:
+    return int(raw)
+
+labels = [parse_label(raw) for raw in ("7", "cat", "2")]
 ```
 
-**Why better:** before, malformed input can raise at runtime or return a sentinel
-such as `-1` that looks like a valid integer to the checker. After, assigning the
-outcome to `int` is rejected as `bad-assignment`. The caller must distinguish
-`Ok` from `Err` before consuming a label. The complete parser follows below.
+The annotation exposes only success. `"cat"` raises `ValueError` at runtime and interrupts the import. Returning `-1` instead would still look like a valid integer to the checker.
 
-Use typed outcomes when the caller can retry, choose a fallback, correct input,
-or reject a record and continue. Use exceptions when the operation has no
-supported recovery path and must unwind. Recovery is relative to that operation;
-an outer boundary may still clean up or report an exception.
-
-A `Raises:` docstring does not expose a recoverable failure to the type checker.
-`Result[Config, ReadError | InvalidConfig]` does: callers must narrow the outcome
-before using the configuration. A caller can still discard the entire result,
-and Python's type system does not prove that unexpected exceptions cannot escape.
-
-Translate specific recoverable library exceptions at the boundary. Do not turn
-programming defects into ordinary rejected records. The deliberately broad SDK
-adapter has a [separate policy](third-party-boundaries.md#why-catch-exception-here).
-
-## Choose a representation for the caller's decisions
-
-Use domain alternatives such as `AcceptedRow | RejectedRow` when their names and
-fields describe the decisions best. For generic success/failure, use
-`Result[T, E] = Ok[T] | Err[E]`: two frozen records, with a `value` or an `error`.
-Handle them with `match` and `assert_never`, without a shared result base class,
-third-party result package, or unchecked unwrap.
-
-The parser below accepts `"7"` as `Ok(7)` and rejects `"cat"` as
-`Err(InvalidLabel(raw="cat", reason="not a nonnegative integer"))`. The caller can
-report the rejected input and continue. `Generic[T]` supplies Python 3.11 type
-parameters; it adds no shared result behavior.
+**Alternative**
 
 [Source](../examples/explicit_results.py)
 
@@ -121,108 +95,22 @@ description = describe_label(outcome)
 # rejected[missing-attribute]: unchecked = outcome.unwrap()
 ```
 
-**Static guarantee verified here:** callers cannot assign the result container
-to an `int`, change its declared success or error type, or access `.value` or
-`.error` before narrowing to the appropriate variant. No `.unwrap()` method exists.
-Matching `Ok(value=label)` yields an `int`; matching `Err(error=error)` yields an
-`InvalidLabel`. `assert_never` checks exhaustive handling of the closed union;
-the regression suite verifies that adding another alternative breaks the handler.
+`parse_label("7")` returns `Ok(7)`; `parse_label("cat")` returns an
+`Err` carrying the rejected input and reason. `describe_label` uses `match` to
+consume either outcome. It produces `"class 7"` or a rejection message.
 
-**Runtime obligation:** Python has no Rust-style `must_use` guarantee here. A caller
-can discard the result entirely, and the type does not prove that a function never
-raises. This parser also does not know the dataset's class count. Its caller must
-validate that a nonnegative label is within that dataset's range. Frozen variants
-prevent normal field reassignment but do not freeze mutable payloads or enforce
-ownership. Annotations do not validate dynamically supplied constructor arguments.
+**Result and match work together:** the union exposes failure, matching narrows
+the payload, and `assert_never` checks that no variant is forgotten. Assigning
+the result directly to `int`, or reading `.value` before narrowing, is rejected.
+A `Raises:` docstring cannot provide that checked contract.
 
-## Know where a failure happened
+Use typed outcomes for supported retry, fallback, correction, or record rejection.
+Use exceptions when the operation has no recovery path and must unwind. Translate
+specific recoverable library exceptions at the boundary; do not disguise bugs.
+Python can still raise unexpected exceptions, and a caller can discard the whole
+result. No return annotation proves exception freedom.
 
-A result retains only the error information supplied to it:
-
-| Payload | Useful for | Limit |
-| --- | --- | --- |
-| `Err(InvalidLabel(raw="cat", reason="not a nonnegative integer"))` | Reporting bad input | No original exception or traceback |
-| `Err(error)` containing a caught `ValidationError` | Diagnosing the failing code | No record of functions that later pass the result along |
-
-For an import, include a source `Path`, row, and column when callers need to find
-the bad record. For a retained exception, `error.add_note(...)` adds context and
-`traceback.print_exception(error)` displays its existing traceback. Printing
-`str(error)` alone omits it. Logging and output belong at the caller that decides
-whether to retry, reject, or stop.
-
-Wrapping an exception does not raise it or create a chain. Use `raise ... from error`
-when deliberately translating it to a different exception. A newly constructed
-exception has no original traceback; a record's `cause` field does not create one.
-
-Tracebacks retain stack frames and potentially large local objects. For large
-collections of rejected rows, prefer compact error details and source coordinates.
-Do not assume exception objects survive serialization or process boundaries.
-[Exception notes](https://docs.python.org/3.11/library/exceptions.html#BaseException.add_note),
-[traceback formatting](https://docs.python.org/3.11/library/traceback.html#traceback.print_exception).
-
-## Preserve the reason a value is absent
-
-```diff
-  if predicted_positives == 0:
--     return 0.0
-+     return Absent("no predicted positives")
-```
-
-**Why better:** before, an undefined metric looks like a valid score. After, the
-return type is `float | Absent`; assigning it directly to `float` is rejected.
-The caller must distinguish absence from zero. `float | None` would also require
-narrowing, but would not carry the reason.
-
-[Source](../examples/reasoned_absence.py)
-
-```python
-"""Keep an undefined metric distinct from a real zero."""
-
-from dataclasses import dataclass
-from typing import assert_never, final
-
-
-@final
-@dataclass(frozen=True, slots=True)
-class Absent:
-    """Explain why a domain value is unavailable."""
-
-    reason: str
-
-
-def precision(true_positives: int, false_positives: int) -> float | Absent:
-    """Compute precision; reject negative counts and explain a zero denominator."""
-    if true_positives < 0 or false_positives < 0:
-        raise ValueError("counts must be nonnegative")
-    predicted_positives = true_positives + false_positives
-    if predicted_positives == 0:
-        return Absent("no predicted positives")
-    return true_positives / predicted_positives
-
-
-def format_precision(value: float | Absent) -> str:
-    """Render a metric without silently assigning a numeric value to absence."""
-    match value:
-        case Absent(reason=reason):
-            return f"undefined: {reason}"
-        case int(score) | float(score):
-            return f"{score:.3f}"
-        case _:
-            assert_never(value)
-
-
-undefined = precision(0, 0)
-zero = precision(0, 12)
-# rejected[bad-assignment]: score: float = undefined
-```
-
-**Results:** `precision(0, 0)` returns `Absent("no predicted positives")`;
-`precision(0, 12)` returns `0.0`. Their formatted values are
-`"undefined: no predicted positives"` and `"0.000"`.
-
-**Static guarantee:** consumers must narrow the union before treating the result as
-a float. Keep required identity fields required instead of making every field absent.
-
-**Runtime obligation:** counts must represent the same evaluation population. Avoid
-truthiness checks: a real `0.0` is falsy. If absence reasons drive control flow,
-promote them to an enum or separate variants instead of matching free-form strings.
+The parser accepts nonnegative integer-valued text, including `"7.0"`; it does
+not know the dataset's class count. The two frozen variants freeze their own
+fields, not mutable payloads. Keep this small union rather than adding a result
+framework or unchecked unwrap methods.

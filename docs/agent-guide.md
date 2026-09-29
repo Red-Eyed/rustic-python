@@ -16,21 +16,22 @@ the skill does not authorize replacing dependencies or refactoring unrelated cod
    at the boundary and contain library uncertainty there. Use the guide's Pydantic
    and pydantic-settings examples as the reference implementation, respecting the
    target stack. See [data modeling](data-modeling.md) and
-   [settings](state-and-generics.md#load-settings-at-startup).
+   [settings](settings.md).
 3. Declare recoverable failures as typed outcomes; let operations without a
    supported recovery path unwind. Use the small custom `Ok[T] | Err[E]` union
    when generic success/failure fits, with `match` and `assert_never`; no result
    base class, third-party result package, or unchecked unwrap is needed.
    A `Raises:` docstring is not a checked failure contract. See
-   [errors and absence](errors-and-absence.md) for recovery policy, absence,
-   diagnostic details, and the limits of this guarantee.
+   [Result and match](errors-and-absence.md) for recovery policy and the limits
+   of this guarantee; see [error details](error-details.md) for diagnostics.
 4. Keep reflection out of ordinary application logic. Use declared fields,
    explicit variants, and typed registries; contain necessary dynamic behavior
    in documented adapters or tests. See
-   [third-party boundaries](third-party-boundaries.md#restrict-dynamic-attribute-access).
+   [dynamic access](dynamic-access.md).
 5. Introduce protocols at real substitution points and separate types for useful
    lifecycle restrictions. Preserve behavioral contracts as well as signatures.
-   See [composition](oop-and-plugins.md) and [state and generics](state-and-generics.md).
+   See [composition](composition.md), [state](state-and-generics.md), and
+   [generics](generics.md).
 6. Verify the promised rejection with the project's checker and the runtime
    obligations with relevant tests. Use [pytest practices](testing.md) and
    investigate [checker limitations](checker-limitations.md) before adding suppressions.

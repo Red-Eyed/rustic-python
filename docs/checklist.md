@@ -12,20 +12,20 @@ items that fit the change. Each link explains the rationale, costs, and examples
 - [ ] Give shared records precise fields and domain types. Keep required fields
   required; parse dates and timestamps at the boundary. [Data modeling](data-modeling.md)
 - [ ] Preserve relationships between arguments and results, and encode structural
-  preconditions where useful. [State and generics](state-and-generics.md)
+  preconditions where useful. [State](state-and-generics.md), [generics](generics.md)
 
 ## Handle outcomes and alternatives
 
 - [ ] Declare supported recovery decisions as typed outcomes. Document why any
   remaining exceptions must unwind the operation; a `Raises:` section is not a
-  checked failure contract. [Failure contracts](errors-and-absence.md#make-expected-failures-explicit)
+  checked failure contract. [Failure contracts](errors-and-absence.md)
 - [ ] Narrow outcomes before consuming payloads and check closed unions with
   `assert_never`. Avoid unchecked unwraps and discarded failures.
-  [Result handling](errors-and-absence.md#choose-a-representation-for-the-callers-decisions)
-- [ ] Preserve meaningful absence reasons and distinguish missing values from
-  valid zero or emptiness. [Absence](errors-and-absence.md#preserve-the-reason-a-value-is-absent)
+  [Result handling](errors-and-absence.md)
+- [ ] Distinguish unavailable values from valid zero or emptiness with typed
+  outcomes. [Undefined metrics](absence.md)
 - [ ] Retain the diagnostic details callers need without turning programming
-  defects into routine failures. [Failure provenance](errors-and-absence.md#know-where-a-failure-happened)
+  defects into routine failures. [Failure provenance](error-details.md)
 
 ## Validate at boundaries
 
@@ -33,18 +33,18 @@ items that fit the change. Each link explains the rationale, costs, and examples
   policies; expose precise types afterward. Keep unknown library values inside
   adapters. [Boundary validation](third-party-boundaries.md)
 - [ ] Use declared fields and typed interfaces in application logic. Keep necessary
-  reflection local to documented adapters or tests. [Dynamic access](third-party-boundaries.md#restrict-dynamic-attribute-access)
+  reflection local to documented adapters or tests. [Dynamic access](dynamic-access.md)
 - [ ] Keep configuration and CLI constraints consistent, and side effects at the
-  application edge. [Settings and CLIs](state-and-generics.md#load-settings-at-startup)
+  application edge. [Settings](settings.md), [CLIs](typed-cli.md)
 - [ ] Define behavior for malformed, empty, nonfinite, and partial inputs where
-  relevant. [Edge cases](practical-choices.md#edge-cases-that-types-alone-do-not-settle)
+  relevant. [Edge cases](coercion.md)
 
 ## Keep components and state understandable
 
 - [ ] Use small protocols where substitution is needed. Implementations and
-  wrappers must preserve error and mutation contracts. [Composition](oop-and-plugins.md)
+  wrappers must preserve error and mutation contracts. [Composition](composition.md)
 - [ ] Model state-dependent operations explicitly and account for shallow
-  immutability and aliases. [State and immutability](state-and-generics.md)
+  immutability and aliases. [State](state-and-generics.md), [immutability](immutability.md)
 - [ ] In numerical code, keep native arrays and tensors; validate before compiled
   inference. [Scientific applications](ml-correctness.md)
 

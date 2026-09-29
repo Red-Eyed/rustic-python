@@ -9,28 +9,21 @@ Put detailed guidance in the relevant page under `docs/`. For a new topic, add a
 focused page and link it from the entry point. Cross-page references should use
 relative filenames and heading anchors rather than references to numbered sections.
 
-Add independent sections using this structure:
+Give each concept its own short page in this order:
 
-1. Before/after code showing one concrete mistake. Prefer a short diff of changed
-   lines, followed by the complete improved implementation. Replace the prose
-   description of the mistake with this comparison.
-2. A brief “why better”: identify the misuse previously possible at runtime and
-   the exact operation the checker now rejects. Label runtime-only improvements
-   honestly. The complete snippet includes all imports and its contract.
-3. A nearby `# rejected[diagnostic-kind]:` example that isolates the promised static
-   rejection. Separate multiple expected kinds with commas.
-4. A precise statement of the static guarantee, with the rejected operation,
-   diagnostic category, and reason visible on the page.
-5. Runtime validation requirements, limitations, and relevant performance costs.
-6. Relevant edge cases and the chosen behavior for each, backed by tests where the
-   lesson makes a guarantee. Distinguish unimplemented application concerns from
-   cases actually covered by the example.
-7. An acceptable simpler alternative, when it applies, and the trigger for needing
-   the stronger pattern. Do not present an elaborate representation as a universal
-   default.
-8. If a workaround is checker-specific, record a minimal reproduction, affected
-   versions, runtime evidence, and a removal condition. Keep normal application
-   examples free of broad suppressions.
+1. Model a concrete situation and the decision the caller needs to make.
+2. Show idiomatic Python for that situation. Use a brief `text` sketch where the
+   point is a conventional pattern, not a complete runnable source file. Do not
+   invent strawman use of `object`, `Any`, or `Err` as typical Python.
+3. Show the better alternative. Link a complete Python listing when the lesson
+   has executable example source; use a short sketch for small prose lessons.
+4. After the listing, state the observed outcome and why the change helps. Name
+   the exact mistake the checker rejects; label runtime improvements honestly.
+5. Mention only limits and edge cases that change the design decision. If the
+   pattern is checker-specific, record affected versions and removal conditions.
+
+Complete examples need a nearby `# rejected[diagnostic-kind]:` statement that
+isolates each claimed static rejection. Separate multiple kinds with commas.
 
 Write for a reader who has not followed the project's discussions. Explain the
 problem before prescribing a pattern, define unfamiliar terminology, and separate
@@ -54,7 +47,7 @@ commands in this contributor appendix.
 Every failure example needs a recovery contract. Use typed outcomes when callers
 can retry, correct input, or reject a record and continue. For raising examples,
 state why that operation must unwind. A `Raises:` docstring alone does not expose
-a recoverable failure to the checker. See [errors and absence](errors-and-absence.md).
+a recoverable failure to the checker. See [Result and match](errors-and-absence.md).
 
 Put the executable source in `examples/` and link it immediately before its
 documentation fence using `[Source](../examples/name.py)`. Paths in documentation
@@ -113,8 +106,7 @@ Build from a Git checkout: skill bundles record its HEAD, dirty state, and file
 hashes in `rustic-python-source.json`. Dirty local builds are usable previews,
 but must not be described as an exact published revision. Build from a clean,
 stable checkout when producing a distributable snapshot.
-The fixture diagram uses Mermaid from a CDN; when unavailable, its source remains
-visible. The installed skill's references do not require network access.
+The installed skill's references do not require network access.
 
 The GitHub Actions workflow runs checks and builds on pull requests and pushes
 to `main`. Only successful builds on `main` deploy to GitHub Pages. The ZIP is
