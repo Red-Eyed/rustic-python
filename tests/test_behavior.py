@@ -11,7 +11,7 @@ from examples.generic_batches import Batch, first
 from examples.immutable_config import Experiment
 from examples.preprocessing_state import UnfittedCenterer
 from examples.task_variants import Classification, Regression
-from examples.validated_records import parse_metadata
+from examples.validated_records import JobMetadata, parse_metadata
 
 
 @pytest.mark.parametrize("raw", ["cat", "-1", "", "7.5"])
@@ -57,10 +57,9 @@ def test_metadata_rejects_invalid_payload(payload: JsonValue) -> None:
 
 def test_metadata_discards_extra_fields() -> None:
     """The parser's documented extra-field policy keeps only the canonical schema."""
-    assert parse_metadata(json.dumps({"name": "data", "workers": 3, "extra": 1})) == {
-        "name": "data",
-        "workers": 3,
-    }
+    assert parse_metadata(
+        json.dumps({"name": "data", "workers": 3, "extra": 1})
+    ) == JobMetadata(name="data", workers=3)
 
 
 def test_centerer_uses_training_mean() -> None:

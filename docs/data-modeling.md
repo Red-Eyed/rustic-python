@@ -11,7 +11,8 @@ metadata: dict[str, str | int] = {"name": "report", "workers": 4}
 workers = metadata["worker_count"]
 ```
 
-The dictionary annotation allows any string key. This typo survives checking and raises `KeyError` when the field is read.
+The dictionary annotation allows any string key. This typo survives checking and
+raises `KeyError` when the field is read.
 
 **Alternative**
 
@@ -22,42 +23,37 @@ The dictionary annotation allows any string key. This typo survives checking and
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, StringConstraints, TypeAdapter, with_config
-from typing_extensions import TypedDict
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 
-@with_config(ConfigDict(strict=True, extra="ignore"))
-class JobMetadata(TypedDict):
+class JobMetadata(BaseModel):
     """Require a job name and a positive worker count."""
 
+    model_config = ConfigDict(strict=True, extra="ignore")
     name: Annotated[str, StringConstraints(pattern=r"\S")]
     workers: Annotated[int, Field(ge=1)]
 
 
-METADATA = TypeAdapter[JobMetadata](JobMetadata)
-
-
 def parse_metadata(payload: str) -> JobMetadata:
     """Load startup JSON; invalid configuration aborts with ValidationError."""
-    return METADATA.validate_json(payload)
+    return JobMetadata.model_validate_json(payload)
 
 
 metadata = parse_metadata('{"name": "report", "workers": 4}')
-workers = metadata["workers"]
-# rejected[bad-typed-dict-key]: workers = metadata["worker_count"]
-# rejected[bad-typed-dict-key]: broken: JobMetadata = {"name": "report"}
+workers = metadata.workers
+# rejected[missing-attribute]: workers = metadata.worker_count
 # rejected[bad-argument-type]: parse_metadata({})
 ```
 
-The parser produces `{"name": "report", "workers": 4}`. With `JobMetadata`, the
-same `worker_count` access is a `bad-typed-dict-key` error before execution.
-Missing required fields are also rejected in checked construction.
+The parser produces `JobMetadata(name="report", workers=4)`. With `JobMetadata`,
+the same `worker_count` access is a `missing-attribute` error before execution.
 
 The type describes the record; Pydantic validates external JSON at runtime.
 Here it rejects nonpositive, boolean, string, and float worker counts and ignores
-extra metadata. Invalid startup configuration aborts with `ValidationError`.
+extra metadata. Missing fields are rejected during validation. Invalid startup
+configuration aborts with `ValidationError`.
 A caller supporting correction or row rejection should expose a
 [typed failure](errors-and-absence.md) instead.
 
-`TypedDict` itself performs no validation. Unchecked Pydantic construction or
-`model_copy(update=...)` can bypass checks; validate the actual admission path.
+Direct model construction validates too; `model_construct` and
+`model_copy(update=...)` can bypass checks. Validate the actual admission path.
