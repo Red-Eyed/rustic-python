@@ -48,6 +48,8 @@ workers = metadata["workers"]
 # rejected[bad-argument-type]: parse_metadata({})
 ```
 
+**Result:** `metadata` is `{"name": "report", "workers": 4}` and `workers` is `4`.
+
 **Static guarantee:** consumers know the required keys and their types. Misspelled
 keys, incomplete typed records, and raw dictionary arguments to the JSON parser
 are rejected.

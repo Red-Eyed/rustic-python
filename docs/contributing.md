@@ -2,7 +2,9 @@
 
 [Project overview and reading path](../README.md)
 
-Keep `README.md` as the project introduction, reading path, and quick start.
+This appendix is for maintaining the book. Readers do not need its tools or commands.
+
+Keep `README.md` as the project introduction and reading path.
 Put detailed guidance in the relevant page under `docs/`. For a new topic, add a
 focused page and link it from the entry point. Cross-page references should use
 relative filenames and heading anchors rather than references to numbered sections.
@@ -15,7 +17,8 @@ Add independent sections using this structure:
 2. A self-contained passing snippet with all imports and documented contracts.
 3. A nearby `# rejected[diagnostic-kind]:` example that isolates the promised static
    rejection. Separate multiple expected kinds with commas.
-4. A precise statement of the static guarantee.
+4. A precise statement of the static guarantee, with the rejected operation,
+   diagnostic category, and reason visible on the page.
 5. Runtime validation requirements, limitations, and relevant performance costs.
 6. Relevant edge cases and the chosen behavior for each, backed by tests where the
    lesson makes a guarantee. Distinguish unimplemented application concerns from
@@ -31,8 +34,17 @@ Write for a reader who has not followed the project's discussions. Explain the
 problem before prescribing a pattern, define unfamiliar terminology, and separate
 design principles from the reference tool stack. Keep development history in the
 changelog; turn past bugs into lasting lessons rather than review narratives.
+Keep one explanation and one useful example per idea. Remove repeated policy
+reminders, chapter summaries, and background that does not change a decision.
 The detailed chapter owns the rationale. Keep the checklist and agent entry points
 short, linking to that chapter instead of repeating its full policy.
+
+The book must be understandable without cloning the repository, installing
+Python, or opening a terminal. Show the relevant input, resulting value or
+failure, and explanation alongside each example. Source links provide optional
+provenance; they must not contain the only explanation or result. Never ask readers
+to run or uncomment code to discover the lesson. Keep setup and verification
+commands in this contributor appendix.
 
 Every failure example needs a recovery contract. Use typed outcomes when callers
 can retry, correct input, or reject a record and continue. For raising examples,
@@ -56,6 +68,23 @@ The synchronization check discovers `README.md` and every Markdown page under
 
 For tool upgrades, recheck the config files and examples together, then update the
 version requirements, project dependencies, and lockfile together.
+
+## Verify the maintained examples
+
+Contributors use uv from the repository root. The lockfile supplies the tested
+environment; the project itself is not an installable runtime library.
+
+```sh
+uv run --python 3.11 --locked pytest
+uv run --locked pyrefly check
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+```
+
+These checks verify the examples, intended static rejections, and correspondence
+between source and book listings. Keep the checker and editor environments aligned
+when investigating a difference. Ruff's formatting check is read-only; formatting
+changes must be reviewed before committing.
 
 ## Build the book and skill
 

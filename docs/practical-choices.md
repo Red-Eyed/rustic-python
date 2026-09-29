@@ -144,32 +144,9 @@ The vendor adapter in this guide rejects the string. That is its explicit policy
 not a rule that every application must reject numeric strings. The same reasoning
 applies to missing labels, optional fields, partial batches, and unknown config keys.
 
-## Simplifications that conceal errors
+## Preserve behavior when simplifying
 
-These are not equivalent ways to shorten the implementation:
-
-- Adding `Any`, a cast, or a blanket ignore to make an unexplained error disappear.
-- Returning zero for an undefined metric without a stated evaluation policy.
-- Catching every exception and returning an empty collection, conflating failure
-  with a successful empty result.
-- Retrying an operation without considering whether it already changed external state.
-- Making required record fields optional because one upstream payload is malformed.
-- Naming a tensor `ValidatedLogits` without establishing anything about its producer.
-- Running validation once and then allowing untracked mutation to invalidate it.
-
-A scoped workaround for a verified checker/stub defect can be justified, but its
-unchecked assumption must be explicit and covered by evidence. It is not a generic
-escape route from modeling the boundary.
-See [tested checker workarounds](checker-limitations.md) for concrete examples.
-
-## A short review rule
-
-For a new component, record the normal input, the relevant edge cases, the chosen
-failure/absence policy, and the simplest representation that supports it. Explain
-why any extra type, wrapper, protocol, or validation pass is needed. This can be a
-few sentences beside the API and a small parametrized test table, not a separate
-design document.
-
-For an existing component, preserve its public behavior unless changing that behavior
-is intentional. A simplification that silently drops samples or converts malformed
-input is a policy change, even if the resulting code is shorter.
+Removing a wrapper is different from dropping rejected records, replacing absence
+with zero, or retrying an operation that may already have changed external state.
+Preserve the failure and data-handling policy. Use the [checklist](checklist.md)
+for review and [checker workarounds](checker-limitations.md) for verified tool defects.

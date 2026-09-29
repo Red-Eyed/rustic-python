@@ -1,113 +1,44 @@
-# Tooling and strictness
+# How to read the examples
 
 [Project overview and reading path](../README.md)
 
-## Run a first example
+Code, relevant results, and checker errors appear on the page. Source links are
+optional; no Python installation, terminal, or repository clone is needed.
 
-To follow along locally, install `uv` using its
-[installation instructions](https://docs.astral.sh/uv/getting-started/installation/),
-then clone this repository and enter its root:
+## Passing and rejected cases
 
-```sh
-git clone https://github.com/Red-Eyed/rustic-python.git
-cd rustic-python
-uv run --locked python examples/validated_records.py
-uv run --locked pyrefly check examples/validated_records.py
+The [record lesson](data-modeling.md) declares a job name and worker count:
+
+| Expression or input | Result | Why |
+| --- | --- | --- |
+| `parse_metadata('{"name": "report", "workers": 4}')` | `{"name": "report", "workers": 4}` | Valid input |
+| `metadata["workers"]` | `4`, with static type `int` | Declared field |
+| `metadata["worker_count"]` | `bad-typed-dict-key` | Undeclared field |
+| `broken: JobMetadata = {"name": "report"}` | `bad-typed-dict-key` | Missing required field |
+| `parse_metadata('{"name": "report", "workers": 0}')` | Runtime `ValidationError` | Worker count must be positive |
+
+Listings mark invalid statements like this:
+
+```text
+# rejected[bad-typed-dict-key]: workers = metadata["worker_count"]
 ```
 
-The script loads a job configuration; successful execution prints nothing.
-The checker accepts the valid code. To see the mistake it prevents, uncomment
-the line marked `rejected` that reads `metadata["worker_count"]`, run the checker
-again, and then restore the comment. The error points to a key absent from the
-declared record. Later lessons use the same passing/rejected convention.
+The checker rejects the statement after the colon for the named reason.
+These comments show incorrect use; they are not suppressions or exercises to run.
+Assertions show expected behavior: `assert first(batch) == 0` expects zero.
 
-`uv` creates the local environment and installs the locked dependencies. You do
-not need the book-building tools to run examples.
+## What the checks establish
 
-## Supported environment
+- **Static checking** rejects operations inconsistent with declared types.
+- **Runtime validation** checks actual values, such as a positive worker count.
+- **Behavioral tests** check results the types do not prove, such as a calculation.
 
-The guide and all examples target **Python 3.11+**. Boundary lessons use Pydantic
-and pydantic-settings; result examples use independent frozen dataclasses and a
-union alias. The supplementary iterator lesson uses more-itertools.
-The lockfile pins the tested environment. Small tuples stand in for model outputs and feature vectors so the
-lessons do not require installing a GPU framework. They are not proposed training
-implementations.
+The examples target Python 3.11+, verified with Pyrefly 1.3.1 and Ruff 0.16.9.
+Pydantic validates inputs; pytest checks behavior. The strict checker profile
+rejects explicit `Any`, missing annotations, and unresolved imports. Ruff handles
+style and suspicious patterns; it does not prove type compatibility.
 
-Examples use `TypeVar`, `Generic`, and `TypeAlias` rather than the Python 3.12-only
-`class Batch[T]`, `def first[T](...)`, and `type Alias = ...` syntax. Both tool
-configurations target 3.11, and `requires-python` records that minimum. Compatibility
-means executing tests on 3.11 as well as checking syntax and types. To verify the
-minimum explicitly, use `uv run --python 3.11 --locked pytest`.
-
-Verified baseline: **Pyrefly 1.3.1**, **Ruff 0.16.9**. The config files require those
-versions, making upgrades an explicit review of diagnostics and examples.
-
-From this repository, these commands provision the development environment through
-`uv` and use the checked-in configurations. `uv.lock` records dependency resolution;
-`--locked` rejects unexpected dependency changes:
-
-```sh
-uv run --locked pyrefly check
-uv run --locked ruff check .
-uv run --locked ruff format --check .
-uv run --locked pytest
-```
-
-In an existing project, run the tools in its dependency environment so Pyrefly can
-resolve the installed libraries. Keep the editor's checker version aligned too.
-Formatting checks are read-only; `ruff format .` applies formatting changes.
-
-Every Python fence in the guide links to source in [examples/](../examples/) or the
-[pytest lesson](../tests/pytest_patterns/).
-For example, `uv run examples/validated_records.py` runs the metadata example; examples
-normally produce no console output. They also work as small modules to explore in
-an editor or REPL.
-
-**The tests keep the guide honest.** They compare documentation fences with linked
-source files, check and execute each example independently, activate deliberately
-invalid lines one at a time, and assert exact diagnostic categories and locations.
-They also verify that a new union variant breaks incomplete matching, and exercise
-runtime obligations such as response validation. Ruff and Pyrefly alone do not
-inspect Markdown fences; the synchronization test connects those fences to checked
-Python files.
-
-The repository is a non-distributable `uv` project: `pyproject.toml` manages tools
-and project metadata without installing a library package. One dependency list
-includes the tools and libraries needed by this tutorial;
-`uv run` provisions them automatically. To adopt the policy in another project,
-the two standalone TOML configs are the reusable starting point.
-
-## What the configurations enforce
-
-[Pyrefly's strict preset](https://pyrefly.org/en/docs/configuration/#preset)
-is the starting point. Our config additionally rejects explicit `Any`, returns
-leaking `Any`, missing annotations, empty implementation bodies, and several
-suspicious constructs. Imports must resolve; unrelated checker suppressions must
-not hide errors. See the [diagnostic reference](https://pyrefly.org/en/docs/error-kinds/)
-for individual rules.
-
-This is an opinionated, verified profile, not a claim that every optional diagnostic
-is enabled. Inference remains useful for local variables; annotations belong at
-function and data boundaries. More annotations do not automatically mean more safety.
-
-[Ruff](https://docs.astral.sh/ruff/settings/) complements type checking with bug
-patterns, annotation hygiene, imports, modern syntax, and suppression checks. It
-does not prove assignability or exhaustive matching. Its typing rules can affect
-imports needed for runtime annotation inspection; review fixes in projects using
-Pydantic or other annotation consumers.
-
-No configuration turns Python into a sound, closed-world language. `Any` flowing
-through third-party code, deliberate casts, mutation, and dynamic features still
-require boundary design and review.
-
-A checker can also reject valid Python. See [working with checker limitations](checker-limitations.md)
-for tested inference and stub failures, local repairs, and when a narrow suppression
-is preferable to restructuring good code.
-
-## Reading the examples
-
-Each application example is self-contained; the pytest lesson's test modules and
-`conftest.py` run together through pytest. Comments such as
-`# rejected[bad-argument-type]: ...` hold deliberately invalid examples and the
-expected diagnostic kinds. The tests activate them independently in temporary
-files; the checked-in modules remain valid. These comments are not suppressions.
+Automated checks verify the printed listings and each intended rejection.
+A clean check still does not prove exception freedom, ownership, or numerical
+correctness. See [checker limitations](checker-limitations.md) for concrete gaps;
+[contributing](contributing.md) contains the maintenance commands.

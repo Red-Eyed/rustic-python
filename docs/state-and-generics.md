@@ -112,11 +112,11 @@ job: Job = first(batch)
 # rejected[missing-argument]: empty: Batch[Job] = Batch()
 ```
 
+**Result:** `job` is `Job(name="report")`; the batch still contains both jobs.
+
 **Static guarantee:** `first(Batch[Job])` returns a `Job`. A **type parameter** such
 as `T` connects the batch's item type to the function's return type. Construction
 requires `head`, so `Batch()` is rejected before execution.
-The relationship survives without a cast. Reusing a type parameter is meaningful
-when it relates inputs, outputs, or fields; it is not decoration.
 
 **Runtime obligation:** this representation starts with an item already available.
 An external collection can still be empty: its adapter must either return a typed

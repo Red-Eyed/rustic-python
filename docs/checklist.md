@@ -51,7 +51,7 @@ items that fit the change. Each link explains the rationale, costs, and examples
 ## Verify the promises
 
 - [ ] Check passing code and the intended static rejections. Keep workarounds
-  narrow and supported by evidence. [Tooling](tooling.md), [checker limitations](checker-limitations.md)
+  narrow and supported by evidence. [Static evidence](tooling.md), [checker limitations](checker-limitations.md)
 - [ ] Test observable behavior and relevant edge cases. Compose fixtures through
   arguments and cover resource cleanup. [Testing](testing.md)
 - [ ] Distinguish static guarantees, runtime validation, and conventions. Do not

@@ -16,6 +16,9 @@ classes, and basic annotations such as `name: str`. No Rust or machine-learning
 experience is required. The examples support Python 3.11+ and introduce typing
 concepts as they are needed; later lessons apply them to ML and scientific code.
 
+Read it as a book: the code, relevant results, and checker rejections are shown
+on the page. No Python installation, terminal, or repository clone is needed.
+
 Python remains dynamic. These patterns improve its contracts without providing
 Rust's ownership, borrow checking, or a proof of numerical correctness.
 
@@ -27,7 +30,7 @@ failure outcomes before moving to larger APIs. This is also the book's reading o
 
 | Topic | What you will learn |
 | --- | --- |
-| [Tooling and strictness](docs/tooling.md) | Python 3.11 support, setup, checker policy, and running examples |
+| [How to read the examples](docs/tooling.md) | Passing cases, checker rejections, runtime results, and the limits of each guarantee |
 | [Modeling data](docs/data-modeling.md) | Validated records, Pydantic discriminated unions, exhaustive matching, and nominal-type tradeoffs |
 | [Errors and absence](docs/errors-and-absence.md) | Custom Ok/Err unions, exhaustive handling, and reason-carrying missing values |
 | [OOP, protocols, and plugins](docs/oop-and-plugins.md) | Composition, small interfaces, registries, wrappers, and extensions |
@@ -40,54 +43,7 @@ failure outcomes before moving to larger APIs. This is also the book's reading o
 | [Supplementary libraries](docs/libraries.md) | more-itertools, validation libraries, and verified limitations |
 | [Design and review checklist](docs/checklist.md) | A concise reference for applying what you learned |
 
-The examples use Pyrefly, Pydantic, and pydantic-settings as a consistent reference
-stack. Each lesson distinguishes the design principle, what these tools verify,
-and what still needs runtime checks. See [tooling](docs/tooling.md) to run your first
-example. Reading the guide does not require installing its development environment.
-
-For agent-assisted work, see [instructions for coding agents](docs/agent-guide.md).
-To maintain the guide itself, see [contributing](docs/contributing.md).
-
-## Install in your coding agent
-
-Give your agent this message; it handles installation:
-
-```text
-Install the Rustic Python skill by reading and following:
-https://raw.githubusercontent.com/Red-Eyed/rustic-python/main/INSTALL.md
-```
-
-Works with Codex, Claude Code, and Cline. See [agent setup](docs/codex.md) for
-invocation examples, project scope, and updates.
-The installed skill checks the repository before each task and refreshes its
-references automatically. Offline use keeps the cached guide and reports that
-freshness could not be verified.
-
-## Contributor checks
-
-From the repository root, uv provisions the locked development and example
-dependencies automatically:
-
-```sh
-uv run --locked pyrefly check
-uv run --locked ruff check .
-uv run --locked ruff format --check .
-uv run --locked pytest
-```
-
-See [tooling](docs/tooling.md) to select Python 3.11 explicitly.
-
-## Repository contents
-
-- [docs/](docs/) — the guide, organized by topic.
-- [examples/](examples/) — runnable examples with deliberately invalid lines kept commented.
-- [tests/](tests/) — behavioral tests, expected type-error checks, and documentation synchronization.
-- [pyrefly.toml](pyrefly.toml) and [ruff.toml](ruff.toml) — reusable strict configurations.
-- [pyproject.toml](pyproject.toml) and [uv.lock](uv.lock) — project tooling and pinned dependencies.
-- [AGENTS.md](AGENTS.md) — repository-specific instructions for coding agents.
-- [CHANGELOG.md](CHANGELOG.md) — user-visible changes to the guide and tooling.
-
-Tests check that documentation snippets match their linked Python source files
-and that each deliberately invalid example fails for its intended reason.
+Optional appendices cover [agent setup](docs/codex.md),
+[maintaining the book](docs/contributing.md), and the [changelog](CHANGELOG.md).
 
 Licensed under the [MIT license](LICENSE).

@@ -56,7 +56,7 @@ All paths are relative to this installed skill, not the user's project.
 | Work with tensors or scientific results | [ML correctness](docs/ml-correctness.md) |
 | Design tests and fixtures | [pytest practices](docs/testing.md) |
 | Evaluate helper libraries | [Supplementary libraries](docs/libraries.md) |
-| Configure static checks | [Tooling](docs/tooling.md) |
+| Interpret static guarantees and rejected cases | [Reading examples](docs/tooling.md) |
 
 ## Configuration templates
 

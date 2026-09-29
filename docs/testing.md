@@ -251,48 +251,16 @@ guarantee reproducibility across devices and nondeterministic kernels. Prefer sm
 deterministic unit tests, with larger integration or statistical tests separately
 identified. A full training run is rarely the smallest evidence for a local bug fix.
 
-## Anti-patterns and their replacements
+## What the tests establish
 
-| Anti-pattern | Why it fails | Prefer |
-| --- | --- | --- |
-| `fitted_centerer(training_values)` inside a test | Calls a fixture as if it were an ordinary factory; bypasses pytest's lifecycle model | Request `fitted_centerer` as a test argument |
-| `from conftest import fitted_centerer` | Couples tests to discovery internals and encourages direct calls | Let pytest discover fixtures; import ordinary helpers from normal modules |
-| One giant fixture with a dozen unrelated resources | Hides dependencies and makes failures hard to localize | Small fixtures composed through named arguments |
-| A session-scoped mutable model or shared consumed iterator | Tests affect later tests through hidden state | Function scope, or explicit reset/isolation when reuse is required |
-| Unrelated `autouse` setup everywhere | A test's visible dependencies stop explaining its environment | Explicit injection for ordinary setup |
-| Loops over cases inside a test | One failure obscures subsequent cases and reporting | Parametrize distinct scenarios with useful IDs |
-| Mutating parameter lists or dictionaries | Case objects may be shared; later cases inherit changes | Immutable parameter records and fresh mutable working data |
-| `pytest.raises(Exception)` around a large block | An unrelated bug can satisfy the test | The specific expected exception around the smallest operation |
-| Reimplementing the algorithm to calculate expected output | The test can reproduce the same mistake | Independent expected values or reference implementation |
-| Mocking private implementation details | Refactoring breaks tests even when behavior is unchanged | Assert outputs, state transitions, and boundary contracts |
-| Real network calls, sleeps, or uncontrolled randomness in unit tests | Tests become slow, flaky, and environment-dependent | Inject fakes, controlled clocks/generators, and explicit integration tests |
-| Testing only that code did not raise | Incorrect but plausible output passes | Assert the relevant result and invariants |
-| Treating coverage percentage as correctness | Executed lines may have no meaningful assertions | Check contracts and likely failure modes; use coverage to find omissions |
-| Hiding a failure with blanket skip/xfail | A regression can disappear indefinitely | A concrete reason and removal condition; strict xfail when unexpected success should fail |
+| Case shown above | Expected result |
+| --- | --- |
+| Fit `(2, 4, 6)`, then transform `1`, `4`, and `7` | `-3`, `0`, and `3` |
+| Fit `()`, `(NaN,)`, or `(infinity,)` | `ValueError` matching `nonempty and finite` |
+| Read `2`, `4`, and `6` from the fixture's file and center them | `(-2, 0, 2)` |
+| Finish the file test, including after an assertion failure | The stream's context manager closes it |
 
-Fixtures are not a requirement for every constant or pure expression. Use them for
-reusable setup and managed resources; use parametrization for cases, and ordinary
-functions for pure helpers. The aim is a dependency graph the reader can understand,
-not a miniature framework inside the test suite.
-
-## Run and inspect the runnable lesson
-
-```sh
-uv run --locked pytest tests/pytest_patterns
-uv run --locked pytest tests/pytest_patterns --setup-show
-uv run --locked pytest tests/pytest_patterns --collect-only -q
-```
-
-The first runs the lesson, the second shows fixture setup/teardown, and the third
-shows collected cases without executing them. The full suite also verifies that
-these documentation snippets match the actual test files. Pyrefly and Ruff check the
-fixtures and tests alongside application examples.
-
-The project's pytest configuration rejects unknown configuration options and
-unregistered markers. Expected failures are strict by default: an unexpected pass
-fails the suite so a stale `xfail` cannot silently remain. Register any new custom
-markers in `pyproject.toml` and give expected failures a concrete reason.
-
-The practical rule is: **types describe permitted operations; fixtures establish
-test conditions; parametrization explores cases; assertions check the behavior.**
-Keep each responsibility visible.
+The fixture graph supplies setup; the assertions establish behavior. Coverage
+alone proves neither. Avoid tests that reproduce the implementation or mock the
+operation being tested. Fixtures suit reusable setup and resource lifetimes;
+ordinary functions suffice for pure helpers.

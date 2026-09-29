@@ -2,12 +2,6 @@
 
 [Project overview and reading path](../README.md)
 
-Pydantic and pydantic-settings are the guide's standard boundary tools.
-Small local types explain internal contracts. Use established libraries for
-iterator utilities and schema validation, and verify the actual API path with
-Pyrefly. A library advertising type hints does not prove that every operation
-preserves types or rejects misuse.
-
 | Need | Library to consider | What it contributes | What remains outside its guarantee |
 | --- | --- | --- | --- |
 | Batching and iterator transformations | [more-itertools](https://more-itertools.readthedocs.io/en/stable/) | Reusable iterable algorithms | Batch length, exhaustion, and buffering remain runtime concerns |
@@ -18,11 +12,6 @@ preserves types or rejects misuse.
 11.1.0. The lockfile records the exact environment; manifest requirements use lower
 bounds. more-itertools is an optional design choice, while boundary validation
 examples use Pydantic consistently.
-
-Result handling needs no third-party package in this guide. The
-[errors lesson](errors-and-absence.md) uses two frozen dataclass variants and a
-closed union, with structural pattern matching and exhaustive handling. Keep that
-representation small instead of growing a functional-programming framework.
 
 ## more-itertools: preserve element types, specify stream policy
 
@@ -57,7 +46,9 @@ first_batch = next(batches)
 # rejected[bad-assignment]: wrong: Iterator[list[str]] = batches
 ```
 
-**Static guarantee demonstrated:** the iterator retains the element type. It cannot
+**Result:** `first_batch` is `[1, 2]`; the next batch is `[3, 4]`.
+
+**Static guarantee:** the iterator retains the element type. It cannot
 be assigned to an iterator of string lists.
 
 **Runtime obligations:** a list's length is not encoded in `list[T]`. Exhaustion,
@@ -70,36 +61,20 @@ Prefer standard-library `itertools` where it has the needed operation. For this
 guide's 3.11 baseline, `itertools.batched` is unavailable: it was introduced in
 3.12, with `strict` added in 3.13. [Python's batched documentation](https://docs.python.org/3/library/itertools.html#itertools.batched).
 
-The strict iterator's failure policy stops processing when a promised complete
-batch cannot be formed. Since iteration is lazy, the exception occurs while
-consuming it, not necessarily when creating it. If incomplete batches are a
-supported outcome, expose that decision explicitly instead of documenting a
-recoverable exception as the only contract.
+An incomplete batch violates this iterator's contract and stops consumption.
+If callers support partial batches, represent that decision explicitly.
 
 ## Validation libraries complement static checking
 
-The guide recommends Pydantic for external schemas, including small ones:
-`BaseModel` for model objects, `TypeAdapter` for plain typed structures, and validated dataclasses when
-that interface fits. Use pydantic-settings for environment configuration and
-[CLIs](state-and-generics.md#build-clis-with-pydantic-settings), instead of
-hand-written argparse so argument and configuration constraints share a schema.
-These are the guide's reference tools. The underlying requirement is to validate
-unknown data and expose a precise contract; adding a dependency alone does not
-establish either guarantee. In an existing project, assess its validation stack
-against those requirements before proposing a replacement. See
-[data modeling](data-modeling.md), [settings](state-and-generics.md#load-settings-at-startup),
-and the [SDK adapter](third-party-boundaries.md) for executable examples.
+Use Pydantic at external boundaries and pydantic-settings for shared configuration
+and CLI schemas. The [data](data-modeling.md) and [settings](state-and-generics.md)
+chapters cover them; internal records need not carry these dependencies.
 
 Choose coercion deliberately. Strict float fields still accept integers; JSON
 validation can accept date strings that strict Python-object validation rejects.
 Label parsing deliberately accepts numeric text, including `"7.0"` as integer `7`;
 that is a parsing policy, not a claim that all boundaries should coerce. See
 [Pydantic strict mode](https://docs.pydantic.dev/latest/concepts/strict_mode/).
-
-Keep validators at ingress. Internal dataclasses, plain records, and ordinary
-algorithm precondition checks do not need a Pydantic wrapper. In particular, never
-move schema validation into compiled inference just to standardize all objects;
-see [the inference handoff](ml-correctness.md#validation-before-compiled-inference).
 
 `model_construct` bypasses validation, and `model_copy(update=...)` does not
 validate the update. Frozen models prevent ordinary field assignment, not mutation
@@ -108,17 +83,9 @@ avoid unchecked construction as a routine optimization. Tests must cover the
 actual admission path, not merely a model's happy-path constructor.
 [Pydantic model behavior](https://docs.pydantic.dev/latest/concepts/models/).
 
-## Adopt libraries without weakening the checker
+## Check the API you use
 
-Before relying on an API, pin a Python-3.11-compatible release and add a positive
-example plus a misuse that must fail under this project's actual checker. Check
-inferred output types, failure behavior, and lazy evaluation. Do not treat a clean
-run that inferred `Any` as evidence of compatibility.
-
-Checker-specific plugins do not establish guarantees under another checker.
-Validate constructors, accessors, decorators, and composition helpers with Pyrefly
-before relying on their inferred types. Keep the checked API surface small.
-
-Keep optional recommendations separate from required example dependencies. Do not
-install the entire table into every application, and do not invent a custom version
-of a well-supported utility merely to keep the dependency count at zero.
+A library advertising annotations may still infer `Any` or depend on a
+checker-specific plugin. Verify a passing use and a misuse that should be rejected,
+including lazy failures and inferred return types. Choose a library for its needed
+operation; the guide's dependency list is not an application requirement.

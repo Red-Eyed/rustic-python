@@ -5,7 +5,7 @@
 # Foundations
 
 - [Principles, benefits, and costs](fundamentals.md)
-- [Tooling and strictness](tooling.md)
+- [How to read the examples](tooling.md)
 - [Modeling data](data-modeling.md)
 - [Errors and absence](errors-and-absence.md)
 
@@ -23,9 +23,12 @@
 - [Tensors and scientific correctness](ml-correctness.md)
 - [Supplementary libraries](libraries.md)
 
-# Using and extending the guide
+# Review reference
 
 - [Design and review checklist](checklist.md)
+
+# Optional appendices for agents and contributors
+
 - [Using the guide in your coding agent](codex.md)
 - [Installation instructions for agents](../INSTALL.md)
 - [Instructions for coding agents](agent-guide.md)

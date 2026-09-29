@@ -66,9 +66,10 @@ name = normalize_name(" training ")
 # rejected[bad-assignment]: count: int = name
 ```
 
-The [regression tests](../tests/test_guide.py) replace `TypeGuard[str]` with `bool`
-and verify the resulting `missing-attribute` error at `value.strip()`. The normal
-example passes. This is a signature improvement, not a reason to disable checks.
+With `TypeGuard[str]`, `normalize_name(" training ")` returns `"training"` and
+passes checking. Replacing the predicate's return annotation with `bool` produces
+`missing-attribute` at `value.strip()`: the caller still sees `str | int`, and
+`int` has no `strip` method.
 
 `TypeGuard` is a promise made by the predicate author. It does not cause the checker
 to prove that a complicated validator is correct, and `TypeGuard[str]` does not
@@ -79,9 +80,10 @@ do not use an always-true guard as a disguised cast.
 
 In Pyrefly **1.3.1**, matching a mapping against an `object` parameter produces
 `not-callable`, referring to `__getitem__` and `Never`. The same Python code
-executes successfully for a valid mapping. A minimal source string in
-`tests/test_guide.py` verifies both facts in a temporary module. This deliberately
-unknown parameter is a checker reproduction, not a recommended application API.
+executes successfully for a valid mapping: `case {"name": str(name)}` followed by
+`return name.strip()` extracts `"training"` from `{"name": " training "}`.
+The checker instead reports `not-callable` at that case. This deliberately unknown
+parameter isolates a checker defect; it is not a recommended application API.
 
 This is observed behavior of the pinned release, not a claim about every Pyrefly
 version or a reported upstream issue number. Application examples use precise
@@ -95,11 +97,15 @@ expectation.
 
 ## Example 3: the dependency stub is wrong
 
-`test_incorrect_vendor_stub_can_be_repaired_locally` creates a fake vendor module
-whose `output_name()` returns a string. Its deliberately wrong `.pyi` file declares
-an integer return. Pyrefly rejects assigning the call to a string variable even
-though the program is valid. Correcting the stub makes the unchanged caller pass;
-the test also executes the caller against the actual module.
+A dependency's `output_name()` returns `"embedding"`, but its stub declares
+`def output_name() -> int: ...`. The caller writes `name: str = output_name()`.
+
+| Stub return type | Checker result | Runtime result |
+| --- | --- | --- |
+| Incorrect `int` | `bad-assignment`: an `int` cannot be assigned to `str` | `"embedding"` |
+| Corrected `str` | Accepted | `"embedding"` |
+
+Changing the stub repairs the contract without changing the caller.
 
 For a real dependency, first verify the installed version's behavior and documented
 contract. Keep a narrow, version-compatible `.pyi` in a dedicated stub directory,
@@ -179,15 +185,6 @@ annotation, one guard, one adapter, or one justified comment.
 
 ## The opposite problem: wrong code can pass
 
-The guide also records checker-accepted failures. A `float` annotation permits an
-integer, which exposed a bug in the original metric formatter's class-pattern
-matching. See [the numeric edge case](practical-choices.md#match-every-runtime-representation-the-annotation-accepts).
-
-This is not solved by declaring all checks untrustworthy. Use static checks for
-the contracts they enforce, and behavioral tests for the properties they do not.
-
-Run the reproductions and repairs with:
-
-```sh
-uv run --locked pytest tests/test_guide.py -k 'predicate or mapping_pattern or scoped_suppression or incorrect_vendor_stub' -v
-```
+A `float` annotation permits an integer, but the runtime pattern `float(score)`
+does not match `0`. A handler needs both integer and float patterns. See
+[the numeric edge case](practical-choices.md#match-every-runtime-representation-the-annotation-accepts).

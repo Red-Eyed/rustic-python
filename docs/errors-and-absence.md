@@ -7,76 +7,32 @@
 **Mistake:** a caller must distinguish accepted and rejected labels, but the
 parser returns `-1` or an empty dictionary that hides the rejection reason.
 
-This guide recommends typed outcomes for recoverable failures: cases for which
-the caller has a supported decision such as retrying, choosing a fallback, requesting corrected
-input, or recording a rejected row and continuing. Use exceptions when the
-operation has no meaningful recovery path and must unwind, rather than pretending
-normal processing can continue. Broken internal invariants are a typical example.
+Use typed outcomes when the caller can retry, choose a fallback, correct input,
+or reject a record and continue. Use exceptions when the operation has no
+supported recovery path and must unwind. Recovery is relative to that operation;
+an outer boundary may still clean up or report an exception.
 
-Recoverability is relative to the operation's contract, not a claim that the whole
-process must terminate. An outer boundary may still catch an exception to clean
-up, report the failure, or isolate the failed operation. An expected condition
-is not automatically recoverable, and an unfamiliar failure is not automatically
-fatal; define the supported recovery policy instead of relying on those labels.
+A `Raises:` docstring does not expose a recoverable failure to the type checker.
+`Result[Config, ReadError | InvalidConfig]` does: callers must narrow the outcome
+before using the configuration. A caller can still discard the entire result,
+and Python's type system does not prove that unexpected exceptions cannot escape.
 
-A signature such as `Result[Config, ReadError | InvalidConfig]` makes those alternatives visible to
-the checker; a plain `Config` return annotation does not declare raised exceptions.
-Callers must narrow the result before consuming its success payload. Domain-specific
-unions can express the same requirement without generic success/error containers.
-
-A `Raises:` docstring explains behavior to a reader, but it does not make a
-recoverable failure part of the checked return contract. If the caller can reject
-a record and continue, declare that outcome in the return type. Reserve exception
-documentation for failures that must unwind the operation and for the underlying
-library behavior an adapter translates. Documentation still explains recovery
-policy; the type makes using a failure as a success a checker error.
-
-The purpose is to turn incorrect use into a checker error before execution.
-For each proposed result API, identify the invalid operation it should reject:
-reading a success payload before narrowing, confusing payload types, or forgetting
-a variant. Verify those failures with the actual checker. Merely wrapping a return
-value without making misuse harder does not satisfy that goal.
-
-For example, an importer processing 1,000 rows may collect 12 rejected records
-while accepting the remaining 988. Typed outcomes make both paths explicit, so
-rejected rows cannot be mistaken for parsed values. A configuration loader can
-likewise return distinct read and validation errors for the caller to handle.
-
-**A result annotation is not a no-throw guarantee.** Python's type system does not
-track all exceptions an operation can raise. At an integration boundary, catch
-the specific expected exceptions and convert them to declared error variants.
-Unexpected exceptions can still propagate, including bugs in the implementation.
-Do not catch every exception merely to claim that the signature is exhaustive:
-that can disguise programming defects as routine domain outcomes. A deliberately
-broad SDK adapter needs the separate policy described in
-[third-party boundaries](third-party-boundaries.md#why-catch-exception-here).
+Translate specific recoverable library exceptions at the boundary. Do not turn
+programming defects into ordinary rejected records. The deliberately broad SDK
+adapter has a [separate policy](third-party-boundaries.md#why-catch-exception-here).
 
 ## Choose a representation for the caller's decisions
 
-Domain-specific alternatives such as `AcceptedRow | RejectedRow` can communicate
-more than generic success/failure. Use `Result[T, E]` when the shared success/error
-shape itself is useful. The small implementation below teaches that option.
+Use domain alternatives such as `AcceptedRow | RejectedRow` when their names and
+fields describe the decisions best. For generic success/failure, use
+`Result[T, E] = Ok[T] | Err[E]`: two frozen records, with a `value` or an `error`.
+Handle them with `match` and `assert_never`, without a shared result base class,
+third-party result package, or unchecked unwrap.
 
-`Result[T, E]` is the closed union `Ok[T] | Err[E]`: two independent frozen
-records with no shared result base class. For example, parsing `"7"` yields
-`Ok(7)`; parsing `"cat"` yields `Err(InvalidLabel(...))` with the rejected input
-and its reason. `Ok` has only a `value` field; `Err` has only an `error` field.
-
-Keep the implementation small: two dataclasses and a union alias. Handle outcomes
-with structural pattern matching and `assert_never`, rather than adding unchecked
-unwrap methods or a hierarchy of result abstractions. These are concrete class
-variants, not structurally interchangeable protocols. `Generic[T]` is Python 3.11
-syntax for type parameters; it introduces no shared result implementation.
-
-The parser below handles integer labels in an imported file: `"7"` is accepted;
-`"cat"` is rejected with a reason. Its caller can report the rejection and continue
-with other records. The same contract fits form fields or configuration editors.
-
-A low-level validator may raise because that is its library contract. Translate
-recoverable validation errors into typed outcomes at the application boundary.
-Internal guards can still raise for broken assumptions; do not relabel routine
-invalid external input as a programming defect when callers can handle it. See
-[acceptable simplifications](practical-choices.md#acceptable-simplifications-and-when-to-stop-simplifying).
+The parser below accepts `"7"` as `Ok(7)` and rejects `"cat"` as
+`Err(InvalidLabel(raw="cat", reason="not a nonnegative integer"))`. The caller can
+report the rejected input and continue. `Generic[T]` supplies Python 3.11 type
+parameters; it adds no shared result behavior.
 
 [Source](../examples/explicit_results.py)
 
@@ -170,74 +126,30 @@ validate that a nonnegative label is within that dataset's range. Frozen variant
 prevent normal field reassignment but do not freeze mutable payloads or enforce
 ownership. Annotations do not validate dynamically supplied constructor arguments.
 
-The implementation is a self-contained lesson, not a shared framework for the
-other examples. Keep exceptions for failures with no supported recovery path in
-the operation. Use domain-specific variants when success/failure does not capture
-all supported caller decisions.
-
 ## Know where a failure happened
 
-Once callers handle both outcomes, decide how much diagnostic context they need.
-The following choices matter for larger imports and integrations; they do not
-require extending the small Result implementation.
+A result retains only the error information supplied to it:
 
-A result carries the error value you put into it. It does not automatically
-record the history of the computation. Suppose row 1843 in a dataset contains
-the label `"cat"` where an integer is required. Two representations serve
-different needs:
-
-| Error payload | What you retain | What you lose |
+| Payload | Useful for | Limit |
 | --- | --- | --- |
-| `Err(InvalidLabel(raw="cat", reason="not a nonnegative integer"))` | Structured information for routing or reporting the rejected record | The original validation exception and its traceback |
-| `Err(error)` containing the caught `ValidationError` | The exception, its validation details, original traceback, and existing exception chain | Nothing automatically records the later functions that merely pass the result along |
+| `Err(InvalidLabel(raw="cat", reason="not a nonnegative integer"))` | Reporting bad input | No original exception or traceback |
+| `Err(error)` containing a caught `ValidationError` | Diagnosing the failing code | No record of functions that later pass the result along |
 
-The label example above deliberately takes the first approach. Its `raw` and
-`reason` fields explain **what** failed, but not the source file or row. In a data
-pipeline, include typed provenance such as a source `Path`, row index, and column
-name in the error record when callers need to locate bad data. A traceback alone
-often cannot identify which of millions of records triggered the same parser.
+For an import, include a source `Path`, row, and column when callers need to find
+the bad record. For a retained exception, `error.add_note(...)` adds context and
+`traceback.print_exception(error)` displays its existing traceback. Printing
+`str(error)` alone omits it. Logging and output belong at the caller that decides
+whether to retry, reject, or stop.
 
-When diagnosing **where in the code** a failure originated matters, keep the
-exception caught by `except ValidationError as error` and return `Err(error)`.
-Use a precise signature such as `Result[int, ValidationError]`. For a config-file
-loader that also handles file errors, use `Result[Config, OSError | ValidationError]`
-and catch only those expected exceptions. Do not turn unrelated programming bugs
-into ordinary rejected records.
+Wrapping an exception does not raise it or create a chain. Use `raise ... from error`
+when deliberately translating it to a different exception. A newly constructed
+exception has no original traceback; a record's `cause` field does not create one.
 
-On Python 3.11+, `error.add_note("While validating labels in shard 12, row 1843")`
-adds context without replacing the exception or its traceback. Notes appear in
-formatted tracebacks; they do not change the exception type. Avoid placing raw
-secrets or entire samples in diagnostic notes.
-[Python exception notes](https://docs.python.org/3.11/library/exceptions.html#BaseException.add_note).
-
-Wrapping an exception in `Err` does not raise it or add traceback frames. Its
-existing traceback, notes, and cause remain on the same exception object. A newly
-constructed exception that was never raised has no original traceback to preserve.
-A structured error record likewise cannot recreate an exception discarded during
-validation. Storing an exception in a record's `cause` field does not automatically
-create an exception chain.
-
-After matching `Err(error=error)`, use `traceback.print_exception(error)` at a CLI
-boundary, or pass the exception as `exc_info` to your logger. If the caller chooses
-to stop with a different exception, explicitly use `raise ... from error` to chain
-it. There is no implicit unwrap failure or automatic chaining in these records.
-Merely printing `str(error)` omits the traceback. Outside an active `except` block,
-do not rely on `logging.exception()` to find an exception stored in a result.
-Emit diagnostics once at the layer that decides whether to stop, retry, or reject
-a record.
-[Traceback formatting](https://docs.python.org/3.11/library/traceback.html#traceback.print_exception).
-
-**Cost and simplification:** traceback objects retain stack frames and can keep
-large arrays or other local objects alive. Do not accumulate millions of caught
-exceptions in a rejected-row collection. For routine invalid records, retain
-compact error details and source coordinates. Preserve exception objects when
-the diagnostic value justifies their lifetime; do not assume exception objects
-and tracebacks survive JSON serialization or process boundaries.
-
-The distinction is simple: **structured errors locate the bad data when you
-include provenance; preserved tracebacks locate the failing code.** Choose the
-information callers actually need, and never claim the result container recreates
-information discarded at the boundary.
+Tracebacks retain stack frames and potentially large local objects. For large
+collections of rejected rows, prefer compact error details and source coordinates.
+Do not assume exception objects survive serialization or process boundaries.
+[Exception notes](https://docs.python.org/3.11/library/exceptions.html#BaseException.add_note),
+[traceback formatting](https://docs.python.org/3.11/library/traceback.html#traceback.print_exception).
 
 ## Preserve the reason a value is absent
 
@@ -289,6 +201,10 @@ undefined = precision(0, 0)
 zero = precision(0, 12)
 # rejected[bad-assignment]: score: float = undefined
 ```
+
+**Results:** `precision(0, 0)` returns `Absent("no predicted positives")`;
+`precision(0, 12)` returns `0.0`. Their formatted values are
+`"undefined: no predicted positives"` and `"0.000"`.
 
 **Static guarantee:** consumers must narrow the union before treating the result as
 a float. Keep required identity fields required instead of making every field absent.

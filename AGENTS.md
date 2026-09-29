@@ -10,6 +10,13 @@ before applying them to ML and scientific code. Readers need basic Python, not
 Rust or ML experience; separate reader, agent, and contributor workflows. It does not provide
 Rust's ownership, borrow checking, or scientific correctness guarantees.
 
+The reader experience is a self-contained book. Show code, relevant values,
+checker rejections, and their explanations directly in the chapters. Never require
+readers to clone, install Python, open a terminal, or execute/uncomment an example.
+Keep explanations concise: one treatment per idea, without repeated summaries
+or policy reminders. Source links are optional provenance; maintenance commands belong in the contributor
+appendix, and agent installation belongs in its optional appendix.
+
 Pyrefly is the static type checker; Ruff checks and formats code; uv manages the
 environment and lockfile. pytest verifies runtime behavior and the guide's static
 claims. Use typed outcomes for recoverable failures and exceptions when an
