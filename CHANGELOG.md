@@ -2,6 +2,15 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [f94e1bb](https://github.com/Red-Eyed/rustic-python/commit/f94e1bb) — 2026-09-29
+
+**Explain the Rust-inspired Result choice — 0.8.1**
+
+- Introduce `Result` and `match` before the other data contracts, and explain
+  how they move handling of recoverable errors into checked code.
+- Explain the origin of `Result`, the small Python union used here, and when
+  directly named domain variants are clearer.
+
 ## [48f13ad](https://github.com/Red-Eyed/rustic-python/commit/48f13ad) — 2026-09-29
 
 **Type-checkable mistakes as the guide's focus — 0.8.0**
