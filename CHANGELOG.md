@@ -2,6 +2,17 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [47214d9](https://github.com/Red-Eyed/rustic-python/commit/47214d93565dc6c9c7cc4fddd973bade442362a0) — 2026-09-29
+
+**A self-contained, shorter book — 0.6.1**
+
+- Show results and checker diagnostics directly in the chapters; remove reader
+  instructions to clone, install tools, or execute examples.
+- Confine verification commands to the contributor appendix and mark agent setup
+  optional. Preserve complete code listings and their automated checks.
+- Cut repeated introductions, policy reminders, and summaries across the guide;
+  record concise, self-contained teaching as a contributor requirement.
+
 ## [b51da32](https://github.com/Red-Eyed/rustic-python/commit/b51da3281118f26815251eb980b26079f8edf25e) — 2026-09-29
 
 **A guide for general Python readers — 0.6.0**
