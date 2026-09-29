@@ -2,6 +2,14 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [2e8bfd1](https://github.com/Red-Eyed/rustic-python/commit/2e8bfd1) — 2026-09-29
+
+**Highlight Python sketches — 0.7.2**
+
+- Give Python sketches syntax highlighting throughout the book while leaving the
+  agent-install prompt as plain text.
+- Document how contextual sketches differ from complete, source-linked examples.
+
 ## [28f2735](https://github.com/Red-Eyed/rustic-python/commit/28f2735) — 2026-09-29
 
 **Simpler validated record example — 0.7.1**
