@@ -23,29 +23,17 @@ Freezing the record blocks field reassignment but permits mutation of the list. 
 
 **Alternative**
 
-[Source](../examples/immutable_config.py)
-
-```python
-"""Prevent checked mutation of a small experiment configuration."""
-
-from dataclasses import dataclass
-from typing import Final
-
-
-@dataclass(frozen=True, slots=True)
+```python,ignore
+@dataclass(frozen=True)
 class Experiment:
-    """Store feature names in an immutable tuple."""
-
     seed: int
     features: tuple[str, ...]
 
 
 config = Experiment(seed=17, features=("height", "width"))
-DEFAULT_SEED: Final[int] = 17
-# rejected[read-only]: config.seed = 23
-# rejected[missing-attribute]: config.features.append("area")
-# rejected[bad-assignment]: DEFAULT_SEED = 23
 ```
+
+[Source](../examples/immutable_config.py)
 
 The tuple field has no `.append`, so that operation is rejected as
 `missing-attribute`. Frozen fields reject reassignment, and `Final` protects

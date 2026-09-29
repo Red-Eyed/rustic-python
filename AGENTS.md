@@ -43,7 +43,7 @@ provisions the project's dependencies automatically.
 
 ```sh
 uv run --python 3.11 --locked pytest  # Verify the minimum supported Python version
-uv run --locked pytest tests/test_guide.py  # Check snippets and static guarantees
+uv run --locked pytest tests/test_guide.py  # Check source links and static guarantees
 uv run --locked pytest tests/test_behavior.py::test_undefined_precision_differs_from_zero  # Focus a test
 uv run --locked ruff check .  # Check code and configured lint rules
 uv run --locked ruff format .  # Format; reread any changed files
@@ -95,9 +95,9 @@ is part of the lesson. Do not introduce a common base class across lessons.
 `tests/test_guide.py` discovers examples, runs them independently, checks passing
 types, and activates each rejected statement in a temporary copy. It checks the
 diagnostic kinds and locations, so an unrelated error is not a passing result.
-It also compares linked Python fences in README.md and `docs/*.md` with their
-source files. Temporary checker inputs and simulated vendor stubs belong in
-pytest's temporary directories, not committed example code.
+It checks that every example is linked once from README.md or `docs/*.md`.
+Temporary checker inputs and simulated vendor stubs belong in pytest's temporary
+directories, not committed example code.
 
 ## Adding or changing a lesson
 
@@ -107,11 +107,12 @@ pytest's temporary directories, not committed example code.
 - Keep each example self-contained with all imports, documented contracts, and
   at least one `# rejected[diagnostic-kind]: invalid_statement` line. Use commas
   between multiple expected diagnostic kinds.
-- Link the complete source immediately before its Python fence using
-  `[Source](../examples/name.py)`. Update source and documentation together; avoid
-  duplicate source excerpts across pages.
+- Show a short `python,ignore` sketch of the relevant alternative, then link the
+  complete checked source with `[Source](../examples/name.py)`. The book bundles
+  those source files, so readers need no clone. Update sketches and source
+  together; do not duplicate entire source listings in chapter pages.
 - If adding a pytest lesson, keep its tests and local `conftest.py` under
-  `tests/pytest_patterns/`. Link complete sources; pytest lessons do not need
+  `tests/pytest_patterns/`. Link their sources; pytest lessons do not need
   artificial rejected statements.
 - Preserve Python 3.11 syntax: use `TypeVar`, `Generic`, and `TypeAlias` where
   needed, rather than Python 3.12 type-parameter syntax.

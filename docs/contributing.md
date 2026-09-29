@@ -15,17 +15,18 @@ Give each concept its own short page in this order:
 2. Show idiomatic Python for that situation. Use a brief `python,ignore` sketch
    where the point is a conventional pattern, not a complete runnable source file.
    Do not invent strawman use of `object`, `Any`, or `Err` as typical Python.
-3. Show the better alternative. Link a complete Python listing when the lesson
-   has executable example source; use a short sketch for small prose lessons.
-4. After the listing, state the observed outcome and why the change helps. Name
+3. Show the better alternative in a short sketch containing only the contract
+   and operation that change. Link the complete checked source for details.
+4. After the sketch, state the observed outcome and why the change helps. Name
    the exact mistake the checker rejects; label runtime improvements honestly.
 5. Mention only limits and edge cases that change the design decision. If the
    pattern is checker-specific, record affected versions and removal conditions.
 
-Complete examples need a nearby `# rejected[diagnostic-kind]:` statement that
+Each complete source needs a `# rejected[diagnostic-kind]:` statement that
 isolates each claimed static rejection. Separate multiple kinds with commas.
 The `python,ignore` fence highlights a contextual sketch; it does not claim that
-the sketch is an independently checked complete listing.
+the sketch is an independently checked complete listing. Keep the complete source
+in the book as a link, without duplicating its full listing in the chapter.
 
 Write for a reader who has not followed the project's discussions. Explain the
 problem before prescribing a pattern, define unfamiliar terminology, and separate
@@ -51,20 +52,19 @@ can retry, correct input, or reject a record and continue. For raising examples,
 state why that operation must unwind. A `Raises:` docstring alone does not expose
 a recoverable failure to the checker. See [Result and match](errors-and-absence.md).
 
-Put the executable source in `examples/` and link it immediately before its
-documentation fence using `[Source](../examples/name.py)`. Paths in documentation
-links are relative to their page; shell commands run from the repository root.
-The tests discover these files and reject
-missing, stale, or unlinked copies. Each module must contain at least one rejected
-case. `uv run --locked pytest` automatically checks independence, runtime execution,
-and the marked negative examples. Add behavioral tests when a new lesson relies on
-runtime validation rather than static types alone.
+Put the executable source in `examples/` and link it below its sketch with
+`[Source](../examples/name.py)`. Paths in documentation links are relative to
+their page; shell commands run from the repository root. The tests discover
+these files and reject missing or unlinked copies. Each module must contain at
+least one rejected case. `uv run --locked pytest` checks independence, runtime
+execution, and the marked negative examples. Add behavioral tests when a lesson
+relies on runtime validation rather than static types alone.
 
-Pytest lessons instead belong under `tests/pytest_patterns/`, with linked source
-fences for both test modules and `conftest.py`. They are collected by pytest rather
-than run as independent scripts, and do not need artificial static-rejection lines.
-The synchronization check discovers `README.md` and every Markdown page under
-`docs/`, and covers both kinds of snippets without duplicating source excerpts.
+Pytest lessons instead belong under `tests/pytest_patterns/`, with links to both
+test modules and `conftest.py`. They are collected by pytest rather than run as
+independent scripts, and do not need artificial static-rejection lines.
+The source-link check discovers `README.md` and every Markdown page under
+`docs/`, and covers both kinds of examples without duplicating source excerpts.
 
 For tool upgrades, recheck the config files and examples together, then update the
 version requirements, project dependencies, and lockfile together.
@@ -81,10 +81,10 @@ uv run --locked ruff check .
 uv run --locked ruff format --check .
 ```
 
-These checks verify the examples, intended static rejections, and correspondence
-between source and book listings. Keep the checker and editor environments aligned
-when investigating a difference. Ruff's formatting check is read-only; formatting
-changes must be reviewed before committing.
+These checks verify the examples, intended static rejections, and book source
+links. Keep the checker and editor environments aligned when investigating a
+difference. Ruff's formatting check is read-only; formatting changes must be
+reviewed before committing.
 
 ## Build the book and skill
 

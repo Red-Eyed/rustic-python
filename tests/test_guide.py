@@ -89,31 +89,28 @@ def assert_rejected(
 
 
 def documented_source_paths(document: Path) -> set[Path]:
-    """Verify a page's Python fences and resolve their source paths relative to it."""
+    """Verify linked examples are included once without full inline copies."""
     markdown = document.read_text()
-    linked = re.findall(
-        r"\[Source\]\(((?:\.\./)?(?:examples|tests)/[\w/]+\.py)\)"
-        r"\n\n```python\n(.*?)```",
+    assert "```python\n" not in markdown, f"Duplicate full source in {document}"
+    source_links = re.findall(
+        r"^\[Source\]\(((?:\.\./)?(?:examples|tests)/[\w/]+\.py)\)$",
         markdown,
-        re.S,
+        re.M,
     )
-    assert len(linked) == markdown.count("```python\n"), document
-    paths: set[Path] = set()
-    for relative_path, code in linked:
-        path = (document.parent / relative_path).resolve()
-        assert path not in paths, f"Duplicate source snippet in {document}: {path}"
-        assert path.read_text() == code, f"Outdated snippet in {document}: {path}"
-        paths.add(path)
+    paths = {(document.parent / link).resolve() for link in source_links}
+    assert len(paths) == len(source_links), f"Duplicate source link in {document}"
+    for path in paths:
+        assert path.is_file(), f"Missing source in {document}: {path}"
     return paths
 
 
-def test_documentation_matches_examples() -> None:
+def test_documentation_links_examples() -> None:
     """Require the entry point and docs pages to cover each executable example."""
     assert EXAMPLES, "The guide must contain executable examples"
     paths: set[Path] = set()
     for document in DOCUMENTS:
         page_paths = documented_source_paths(document)
-        assert paths.isdisjoint(page_paths), f"Duplicate source snippets in {document}"
+        assert paths.isdisjoint(page_paths), f"Duplicate source links in {document}"
         paths.update(page_paths)
     assert set(EXAMPLES) <= paths
     assert set(PYTEST_EXAMPLES) <= paths

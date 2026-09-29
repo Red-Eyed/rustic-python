@@ -21,48 +21,20 @@ The checker rejects `.strip()` because a plain `bool` return does not tell it wh
 
 **Alternative**
 
-[Source](../examples/checker_limits.py)
-
-```python
-"""Express supported narrowing without casts or project-wide suppressions."""
-
-from dataclasses import dataclass
-from typing import TypeAlias, TypeGuard, assert_never, final
-
-
+```python,ignore
 def is_nonempty_text(value: str | int) -> TypeGuard[str]:
-    """Identify strings with visible content; promise only str to the checker."""
     return isinstance(value, str) and bool(value.strip())
 
 
-@final
-@dataclass(frozen=True, slots=True)
-class InvalidName:
-    """Explain why a value cannot be used as a name."""
-
-    value: str | int
-
-
-NameResult: TypeAlias = str | InvalidName
-
-
-def normalize_name(value: str | int) -> NameResult:
-    """Strip visible text or return a typed rejection."""
+def normalize_name(value: str | int) -> str | InvalidName:
     if is_nonempty_text(value):
         return value.strip()
     return InvalidName(value)
-
-
-outcome = normalize_name(" training ")
-match outcome:
-    case str() as name:
-        pass
-    case InvalidName():
-        pass
-    case _:
-        assert_never(outcome)
-# rejected[missing-attribute]: name = outcome.strip()
 ```
+
+The failure is a typed outcome as in [Result and match](errors-and-absence.md).
+
+[Source](../examples/checker_limits.py)
 
 `TypeGuard[str]` communicates the narrowing. `normalize_name(" training ")`
 returns `"training"`, and the checker accepts `.strip()` in the guarded branch.

@@ -16,56 +16,23 @@ raises `KeyError` when the field is read.
 
 **Alternative**
 
-[Source](../examples/validated_records.py)
-
-```python
-"""Validate job configuration before starting an operation."""
-
-from dataclasses import dataclass
-from typing import Annotated, TypeAlias, assert_never, final
-
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
-
-
+```python,ignore
 class JobMetadata(BaseModel):
-    """Require a job name and a positive worker count."""
-
-    model_config = ConfigDict(strict=True, extra="ignore")
-    name: Annotated[str, StringConstraints(pattern=r"\S")]
+    name: str
     workers: Annotated[int, Field(ge=1)]
 
 
-@final
-@dataclass(frozen=True, slots=True)
-class InvalidMetadata:
-    """Carry a validation failure for a rejected job record."""
-
-    reason: str
-
-
-MetadataResult: TypeAlias = JobMetadata | InvalidMetadata
-
-
-def parse_metadata(payload: str) -> MetadataResult:
-    """Validate startup JSON and return either the record or its rejection."""
+def parse_metadata(payload: str) -> JobMetadata | InvalidMetadata:
     try:
         return JobMetadata.model_validate_json(payload)
     except ValidationError as error:
         return InvalidMetadata(str(error))
-
-
-outcome = parse_metadata('{"name": "report", "workers": 4}')
-match outcome:
-    case JobMetadata(workers=workers):
-        pass
-    case InvalidMetadata():
-        pass
-    case _:
-        assert_never(outcome)
-# rejected[missing-attribute]: workers = JobMetadata(name="report", workers=4).worker_count
-# rejected[missing-attribute]: workers = outcome.workers
-# rejected[bad-argument-type]: parse_metadata({})
 ```
+
+The typed rejection follows the [Result lesson](errors-and-absence.md); this
+page focuses on the named record fields.
+
+[Source](../examples/validated_records.py)
 
 For this input, parsing returns `JobMetadata(name="report", workers=4)`. The
 checker rejects both a misspelled model field and direct access to `.workers`

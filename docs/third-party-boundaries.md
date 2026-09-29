@@ -15,157 +15,24 @@ The caller assumes success and a valid schema. Missing fields, invalid confidenc
 
 **Alternative**
 
-[Source](../examples/third_party_boundary.py)
-
-```python
-"""Contain an untyped prediction API behind validated requests and outcomes."""
-
-from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Annotated, TypeAlias, TypedDict, assert_never, final
-
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    FiniteFloat,
-    StringConstraints,
-    ValidationError,
-)
+```python,ignore
+PredictOutcome = Prediction | CallFailed | InvalidResponse
 
 
-class PredictRequest(BaseModel, frozen=True):
-    """Require a nonempty finite feature vector before crossing the SDK boundary."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-    features: Annotated[tuple[FiniteFloat, ...], Field(min_length=1)]
-
-
-class VendorPayload(TypedDict):
-    """Describe the vendor's otherwise loose keyword-free request dictionary."""
-
-    instances: list[float]
-
-
-class VendorResponse(TypedDict):
-    """Describe only the demo SDK's response, without asserting validation."""
-
-    label: str
-    confidence: float
-
-
-@final
-class Prediction(BaseModel, frozen=True):
-    """Carry the validated label and confidence returned by the adapter."""
-
-    model_config = ConfigDict(
-        strict=True,
-        extra="forbid",
-        revalidate_instances="always",
-        hide_input_in_errors=True,
-    )
-    label: Annotated[str, StringConstraints(pattern=r"\S")]
-    confidence: Annotated[FiniteFloat, Field(ge=0, le=1)]
-
-
-@final
-@dataclass(frozen=True, slots=True)
-class CallFailed:
-    """Preserve a vendor exception for the caller's explicit handling policy."""
-
-    cause: Exception
-
-
-@final
-@dataclass(frozen=True, slots=True)
-class InvalidResponse:
-    """Explain why a returned value failed the vendor response schema."""
-
-    reason: str
-
-
-PredictOutcome: TypeAlias = Prediction | CallFailed | InvalidResponse
-Predictor: TypeAlias = Callable[[PredictRequest], PredictOutcome]
-
-
-@final
-@dataclass(frozen=True, slots=True)
-class InvalidBinding:
-    """Explain why a discovered dependency cannot be called."""
-
-    reason: str
-
-
-BindingResult: TypeAlias = Predictor | InvalidBinding
-
-
-def bind_vendor(candidate: object) -> BindingResult:
-    """Adapt a dynamic SDK callable or return a typed binding failure.
-
-    Only this integration seam accepts an unknown dependency. Callability cannot
-    prove its signature; argument mismatches become ordinary call failures.
-    """
-    if not callable(candidate):
-        return InvalidBinding("vendor predict must be callable")
-
-    def invoke(request: PredictRequest) -> PredictOutcome:
-        """Call once with owned payload data and validate before returning."""
-        payload = encode_request(request)
-        try:
-            response: object = candidate(payload)
-        except Exception as error:
-            # Contain SDK failures, while leaving adapter defects visible.
-            return CallFailed(cause=error)
-        return _parse_response(response)
-
-    return invoke
-
-
-def encode_request(request: PredictRequest) -> VendorPayload:
-    """Give the SDK its own mutable list so it cannot mutate the request tuple."""
-    return {"instances": list(request.features)}
-
-
-def _parse_response(payload: object) -> Prediction | InvalidResponse:
-    """Validate the SDK schema; return field errors without echoing input values."""
+def invoke(request: PredictRequest) -> PredictOutcome:
+    payload = encode_request(request)
     try:
-        return Prediction.model_validate(payload)
-    except ValidationError as error:
-        return InvalidResponse(str(error))
-
-
-def describe(outcome: PredictOutcome) -> str:
-    """Handle every outcome without printing potentially sensitive SDK messages."""
-    match outcome:
-        case Prediction(label=label, confidence=confidence):
-            return f"{label}: {confidence:.3f}"
-        case CallFailed(cause=cause):
-            return f"vendor call failed: {type(cause).__name__}"
-        case InvalidResponse(reason=reason):
-            return f"invalid response: {reason}"
-        case _:
-            assert_never(outcome)
-
-
-def demo_vendor(payload: VendorPayload) -> VendorResponse:
-    """Simulate a dictionary-based vendor that has no validated response schema."""
-    return {"label": "positive", "confidence": 0.8}
-
-
-request = PredictRequest(features=(0.2, 0.8))
-binding = bind_vendor(demo_vendor)
-match binding:
-    case InvalidBinding(reason=reason):
-        summary = reason
-    case _:
-        outcome = binding(request)
-        summary = describe(outcome)
-unhandled: PredictOutcome = _parse_response({"label": "positive", "confidence": 0.8})
-# rejected[bad-argument-type,not-callable]: binding({"instances": [0.2, 0.8]})
-# rejected[missing-attribute]: confidence = unhandled.confidence
-# rejected[bad-typed-dict-key]: payload: VendorPayload = {"features": [0.2]}
-# rejected[bad-return]: def unchecked(request: PredictRequest) -> PredictOutcome: return {"label": "positive", "confidence": 0.8}
+        response: object = candidate(payload)
+    except Exception as error:
+        return CallFailed(error)
+    return _parse_response(response)
 ```
+
+The adapter owns the uncertain call and validates its response. Its typed
+failure variants follow [Result and match](errors-and-absence.md); the complete
+example also handles binding a dynamically discovered callable.
+
+[Source](../examples/third_party_boundary.py)
 
 The demo returns `Prediction(label="positive", confidence=0.8)`.
 Binding may first return `InvalidBinding`; after matching a valid `Predictor`,

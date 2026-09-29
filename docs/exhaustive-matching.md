@@ -19,18 +19,11 @@ The new split silently falls into the default. Nothing tells the author that an 
 
 **Alternative**
 
-[Source](../examples/exhaustive_matching.py)
-
-```python
-"""Expose an unhandled dataset split during static checking."""
-
-from typing import Literal, TypeAlias, assert_never
-
-Split: TypeAlias = Literal["train", "validation", "test"]
+```python,ignore
+Split = Literal["train", "validation", "test"]
 
 
 def may_fit_preprocessor(split: Split) -> bool:
-    """Allow fitting only on the training split."""
     match split:
         case "train":
             return True
@@ -38,11 +31,9 @@ def may_fit_preprocessor(split: Split) -> bool:
             return False
         case _:
             assert_never(split)
-
-
-allowed = may_fit_preprocessor("train")
-# rejected[bad-argument-type]: may_fit_preprocessor("holdout")
 ```
+
+[Source](../examples/exhaustive_matching.py)
 
 The function returns `True` for `"train"` and `False` for the other declared
 splits. Adding `"holdout"` to `Split` without updating the match produces a checker

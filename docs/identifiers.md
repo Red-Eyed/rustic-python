@@ -19,28 +19,16 @@ The checker accepts this call. It produces `"customer:42/order:7"` instead of `"
 
 **Alternative**
 
-[Source](../examples/semantic_types.py)
-
-```python
-"""Reject swapped identifiers even when both are stored as integers."""
-
-from typing import NewType
-
+```python,ignore
 CustomerId = NewType("CustomerId", int)
 OrderId = NewType("OrderId", int)
 
 
 def order_reference(customer_id: CustomerId, order_id: OrderId) -> str:
-    """Format an order reference without checking existence or ownership."""
     return f"customer:{customer_id}/order:{order_id}"
-
-
-customer_id = CustomerId(7)
-order_id = OrderId(42)
-reference = order_reference(customer_id, order_id)
-# rejected[bad-argument-type]: order_reference(order_id, customer_id)
-# rejected[bad-argument-type]: order_reference(7, 42)
 ```
+
+[Source](../examples/semantic_types.py)
 
 The valid call produces `"customer:7/order:42"`. The swapped call and plain
 integer arguments are rejected as `bad-argument-type`. `NewType` preserves which
