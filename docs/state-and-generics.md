@@ -2,51 +2,61 @@
 
 [Project overview and reading path](../README.md)
 
-A centerer must learn a mean before transforming values. Fitting `(2, 4, 6)` establishes mean `4`; transforming `5` should then return `1`.
+An email draft has text but no recipient. Sending it before choosing a recipient
+is a mistake the caller should discover while writing code.
 
 **Typical Python**
 
 ```python,ignore
-class Centerer:
-    def __init__(self) -> None:
-        self.offset: float | None = None
+class Email:
+    def __init__(self, body: str) -> None:
+        self.body = body
+        self.recipient: str | None = None
 
-    def transform(self, value: float) -> float:
-        if self.offset is None:
-            raise RuntimeError("not fitted")
-        return value - self.offset
+    def send(self, deliver: Callable[[str, str], None]) -> None:
+        if self.recipient is None:
+            raise ValueError("recipient required")
+        deliver(self.recipient, self.body)
 
 
-Centerer().transform(5.0)
+Email("Hello").send(record_delivery)
 ```
 
-The method exists before setup, so the checker accepts the call. The lifecycle mistake is discovered only at runtime.
+The checker accepts `send` because the method exists on every `Email`. The
+missing recipient is discovered only when this call runs.
 
 **Alternative**
 
 ```python,ignore
-class UnfittedCenterer:
-    def fit(self, first: float, *rest: float) -> FittedCenterer:
-        return FittedCenterer(mean((first, *rest)))
+@dataclass(frozen=True)
+class DraftEmail:
+    body: str
+
+    def to(self, recipient: str) -> "AddressedEmail":
+        return AddressedEmail(recipient, self.body)
 
 
-class FittedCenterer:
-    def __init__(self, offset: float):
-        self.offset = offset
+@dataclass(frozen=True)
+class AddressedEmail:
+    recipient: str
+    body: str
 
-    def transform(self, value: float) -> float:
-        return value - self.offset
+    def send(self, deliver: Callable[[str, str], None]) -> None:
+        deliver(self.recipient, self.body)
+
+
+DraftEmail("Hello").to("reader@example.com").send(record_delivery)
 ```
 
-[Source](../examples/preprocessing_state.py)
+[Source](../examples/email_state.py)
 
-`unfitted.transform(5.0)` is now rejected as `missing-attribute`. Fitting
-returns the type that offers transformation, and the valid call produces `1.0`.
-The caller no longer needs to remember a separate “fitted” flag.
+`DraftEmail("Hello").send(record_delivery)` is now rejected as
+`missing-attribute`. Calling `.to("reader@example.com")` returns an
+`AddressedEmail`, which can be sent. The in-memory delivery function records
+`("reader@example.com", "Hello")`.
 
-The `first` argument also makes an empty checked fit call invalid. The type
-checker cannot prove values are finite or that they came from the intended
-dataset; validate those properties at an input boundary with a typed outcome.
-The old unfitted value remains usable, and the public fitted constructor can
-bypass fitting. These types are not proof of training provenance or Rust-style
-move semantics.
+The type distinction ensures a recipient field is present; it does not validate
+the address or prove delivery succeeds. Validate an external address at the
+boundary and use a [typed outcome](errors-and-absence.md) for delivery failures
+the caller can handle. The original draft remains usable after `.to()`; Python
+does not enforce Rust-style moves.

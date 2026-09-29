@@ -87,7 +87,7 @@ discovery. `pyrefly.toml` and
 these files, `uv.lock`, and the verified baseline in `docs/tooling.md` together.
 
 Examples express separate contracts: `Transform` demonstrates substitution and
-composition; fitted/unfitted centerers demonstrate state transitions; third-party
+composition; draft/addressed emails demonstrate state transitions; third-party
 adapters convert unknown data into validated records or explicit failure variants.
 Keep side effects at boundaries and use injected dependencies where substitution
 is part of the lesson. Do not introduce a common base class across lessons.

@@ -7,10 +7,10 @@ import pytest
 from pydantic import JsonValue
 
 from examples import reasoned_absence as metrics
+from examples.email_state import DraftEmail
 from examples.explicit_results import Err, InvalidLabel, Ok, parse_label
 from examples.generic_batches import Batch, first
 from examples.immutable_config import Experiment
-from examples.preprocessing_state import UnfittedCenterer
 from examples.task_variants import Classification, Regression
 from examples.validated_records import InvalidMetadata, JobMetadata, parse_metadata
 
@@ -90,10 +90,17 @@ def test_metadata_discards_extra_fields() -> None:
     ) == JobMetadata(name="data", workers=3)
 
 
-def test_centerer_uses_training_mean() -> None:
-    """Fitting establishes the offset subsequently used for transformation."""
-    fitted = UnfittedCenterer().fit(2.0, 4.0, 6.0)
-    assert fitted.transform(5.0) == pytest.approx(1.0)
+def test_addressed_email_can_be_delivered() -> None:
+    """Addressing a draft supplies the recipient passed to delivery."""
+    delivered: list[tuple[str, str]] = []
+
+    def record(recipient: str, body: str) -> None:
+        """Capture the delivery request in memory."""
+        delivered.append((recipient, body))
+
+    draft = DraftEmail("Hello")
+    draft.to("reader@example.com").send(record)
+    assert delivered == [("reader@example.com", "Hello")]
 
 
 @pytest.mark.parametrize("rest", [(), (2, 3)])
