@@ -27,31 +27,31 @@ from examples.third_party_boundary import (
     PredictRequest,
     _parse_response,
 )
-from examples.validated_records import DatasetMetadata, parse_metadata
+from examples.validated_records import JobMetadata, parse_metadata
 
 
 @pytest.mark.parametrize("parser", [parse_metadata, parse_task, prepare_inference])
 @pytest.mark.parametrize("payload", ["", "{", "null", "[]", '"text"', "42"])
 def test_json_boundaries_reject_invalid_documents(
-    parser: Callable[[str], DatasetMetadata | Task | InferenceParameters], payload: str
+    parser: Callable[[str], JobMetadata | Task | InferenceParameters], payload: str
 ) -> None:
     """Reject invalid syntax and nonrecord JSON before values enter the core."""
     with pytest.raises(ValidationError):
         parser(payload)
 
 
-@pytest.mark.parametrize("count", [True, "3", 3.0, -1])
+@pytest.mark.parametrize("count", [True, "3", 3.0, -1, 0])
 def test_metadata_requires_an_actual_integer(count: bool | str | float) -> None:
-    """Pydantic strict validation must not normalize malformed class counts."""
+    """Pydantic strict validation must not normalize malformed worker counts."""
     with pytest.raises(ValidationError):
-        parse_metadata(json.dumps({"name": "dataset", "num_classes": count}))
+        parse_metadata(json.dumps({"name": "dataset", "workers": count}))
 
 
 @pytest.mark.parametrize("name", ["", "   ", 42])
 def test_metadata_requires_visible_text(name: str | int) -> None:
     """Reject blank and nontext identifiers at the input boundary."""
     with pytest.raises(ValidationError):
-        parse_metadata(json.dumps({"name": name, "num_classes": 3}))
+        parse_metadata(json.dumps({"name": name, "workers": 3}))
 
 
 @pytest.mark.parametrize(

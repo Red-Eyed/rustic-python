@@ -5,8 +5,9 @@ This file provides guidance to Codex when working with code in this repository.
 ## Project overview
 
 Rustic Python is a living guide to catching Python API and data-model mistakes
-before execution. It is general purpose with an ML and data science bias, targets
-Python 3.11+, and serves both engineers and coding agents. It does not provide
+before execution. It targets Python 3.11+ and teaches general application contracts
+before applying them to ML and scientific code. Readers need basic Python, not
+Rust or ML experience; separate reader, agent, and contributor workflows. It does not provide
 Rust's ownership, borrow checking, or scientific correctness guarantees.
 
 Pyrefly is the static type checker; Ruff checks and formats code; uv manages the

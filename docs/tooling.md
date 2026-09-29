@@ -2,6 +2,30 @@
 
 [Project overview and reading path](../README.md)
 
+## Run a first example
+
+To follow along locally, install `uv` using its
+[installation instructions](https://docs.astral.sh/uv/getting-started/installation/),
+then clone this repository and enter its root:
+
+```sh
+git clone https://github.com/Red-Eyed/rustic-python.git
+cd rustic-python
+uv run --locked python examples/validated_records.py
+uv run --locked pyrefly check examples/validated_records.py
+```
+
+The script loads a job configuration; successful execution prints nothing.
+The checker accepts the valid code. To see the mistake it prevents, uncomment
+the line marked `rejected` that reads `metadata["worker_count"]`, run the checker
+again, and then restore the comment. The error points to a key absent from the
+declared record. Later lessons use the same passing/rejected convention.
+
+`uv` creates the local environment and installs the locked dependencies. You do
+not need the book-building tools to run examples.
+
+## Supported environment
+
 The guide and all examples target **Python 3.11+**. Boundary lessons use Pydantic
 and pydantic-settings; result examples use independent frozen dataclasses and a
 union alias. The supplementary iterator lesson uses more-itertools.

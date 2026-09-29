@@ -2,32 +2,48 @@
 
 [Project overview and reading path](../README.md)
 
-## The working agreement
+## Start with a mistake the checker can catch
 
-Suppose dataset metadata contains `name` and `num_classes`, but a caller reads
-`class_count`. A loose dictionary leaves that mismatch to runtime. A `TypedDict`
+Suppose a job configuration contains `name` and `workers`, but a caller reads
+`worker_count`. A loose dictionary leaves that mismatch to runtime. A `TypedDict`
 lets Pyrefly reject the wrong key while the code still uses an ordinary dictionary.
 That is a useful starting point: describe an existing interface more precisely,
 without requiring a different way to perform the computation.
 
 Prioritize typed configuration and records, explicit return values, small protocols,
-and validated dependency boundaries. Keep native arrays and tensors in numerical
-code. A type annotation is useful when it catches a plausible mistake at a reasonable
-maintenance cost; giving every intermediate value a new type is not the objective.
+and validated dependency boundaries. A type annotation is useful when it catches
+a plausible mistake at a reasonable maintenance cost; giving every intermediate
+value a new type is not the objective.
 
-We follow four principles:
+The guide follows four principles:
 
-1. **Represent the actual possibilities.** A sample is valid or rejected. A
-   preprocessor is unfitted or fitted. A metric is defined or absent for a reason.
-2. **Validate at boundaries.** Files, JSON, checkpoints, SDKs, and user input do not
+1. **Represent the actual possibilities.** An input record is accepted or rejected.
+   A connection is open or closed. A measurement is available or absent for a reason.
+2. **Validate at boundaries.** Files, JSON, SDKs, and user input do not
    become trustworthy because a variable has an annotation.
 3. **Preserve information.** Carry record schemas and generic relationships through
    helpers instead of collapsing them to `Any`, `object`, or loose dictionaries.
 4. **State the guarantee precisely.** Separate what the checker rejects, what a
    runtime validator establishes, and what remains an engineering obligation.
 
-Rust also distinguishes static guarantees from runtime properties. Its compiler
-does not prove that your labels are correct or your model will converge.
+A **boundary** is where untrusted data or an untyped dependency enters typed code.
+A **union** describes alternatives, such as a successful value or a rejected input.
+**Narrowing** identifies which alternative a value holds before accessing its fields.
+The following chapters introduce these techniques through runnable examples.
+
+## Principles and the reference stack
+
+The design goal is to make incorrect API use visible before execution. The guide
+recommends a consistent stack so examples can demonstrate that goal: Pyrefly for
+static checking, Pydantic for external-data validation, and pydantic-settings for
+configuration and CLIs. Ruff checks style and pytest verifies runtime behavior.
+These are implementation choices, not properties of Python's type system.
+
+When applying the guide to an existing project, preserve its constraints and
+identify the equivalent guarantees in its tools. Do not assume another checker
+accepts or rejects exactly the same programs. The guide's policies on typed
+recoverable failures, meaningful absence, and restricted reflection are deliberate
+design recommendations; each chapter explains their scope and costs.
 
 ## What you gain and what it costs
 
@@ -37,27 +53,28 @@ and dependency behavior must be examined manually.
 
 ### A wrong metadata key becomes a static error
 
-In [validated_records.py](../examples/validated_records.py), dataset metadata has
-the required fields `name: str` and `num_classes: int`. Reading
-`metadata["class_count"]` produces `bad-typed-dict-key`. Constructing a typed record
-without `num_classes` is also rejected. Both cases are verified by the guide tests.
+In [validated_records.py](../examples/validated_records.py), job configuration has
+the required fields `name: str` and `workers: int`. Reading
+`metadata["worker_count"]` produces `bad-typed-dict-key`. Constructing a typed record
+without `workers` is also rejected. Both cases are verified by the guide tests.
 
 The runtime representation remains a dictionary. Existing serialization and lookup
 code do not need a parallel wrapper API. The external JSON still needs validation:
 the record annotation tells the checker what has been established, while the parser
 establishes it for actual incoming data.
 
-This does not prove the class count matches the dataset. It prevents a specific
-schema mistake and makes the remaining data-quality obligation explicit.
+This does not prove the machine has enough resources for the requested workers.
+It prevents a specific schema mistake and makes the remaining operational
+obligation explicit.
 
-### Benefits demonstrated by this repository
+### What the patterns prevent
 
 | Before | After applying the pattern | Evidence and limit |
 | --- | --- | --- |
 | A new task or split silently uses a wildcard fallback | Exhaustive dispatch makes the missing case visible | A test adds `holdout` to the split union and verifies failure at `assert_never` |
 | An unfitted object offers methods that fail only when called | Separate fitted/unfitted types expose different operations | `unfitted.transform(...)` fails static checking; the type does not prove training-data provenance |
-| A misspelled dictionary key travels into downstream code | A validated record has known keys and required fields | `class_count` is rejected; external payloads still require runtime validation |
-| An SDK error or malformed response leaks into model logic | The adapter exposes success, call failure, or invalid response | Tests exercise a genuinely unannotated dependency, mutation, exceptions, and malformed data |
+| A misspelled dictionary key travels into downstream code | A validated record has known keys and required fields | `worker_count` is rejected; external payloads still require runtime validation |
+| An SDK error or malformed response leaks into application logic | The adapter exposes success, call failure, or invalid response | Tests exercise a genuinely unannotated dependency, mutation, exceptions, and malformed data |
 | Adding a backend means modifying dispatch branches | A new protocol implementation is registered at construction | An independent `Offset` plugin works without pipeline changes; behavior still needs contract tests |
 
 These are reproducible checks, not anecdotes about production performance.
@@ -74,15 +91,14 @@ modes in a function signature, so a reviewer or coding agent does not have to in
 them from scattered branches. A refactor can deliberately expand a union and use
 the resulting errors to locate incomplete dispatchers.
 
-For an illustrative workflow, suppose an evaluation callback reads a misspelled
-metadata key only after a four-hour training job. Rejecting that access before
-submission can avoid a late failure. This is a hypothetical example, not a measured
-speedup. A numerical mistake such as applying softmax twice generally remains a
-behavioral-testing concern when both values are native tensors.
+Suppose a report generator reads a misspelled configuration key only after
+processing 1,000 files. Rejecting that access before starting avoids discovering
+it at the end. This illustrates earlier feedback, not a measured speedup. A report
+that computes the wrong total can still type-check; its calculation needs tests.
 
-The same benefits apply to services and CLIs: clearer contracts, earlier feedback,
-and fewer assumptions carried between components. Type checking is a development
-feedback mechanism; it does not make Python execution itself faster.
+These benefits apply to services, CLIs, and scientific pipelines: clearer contracts,
+earlier feedback, and fewer assumptions carried between components. Type checking
+is a development feedback mechanism; it does not make Python execution itself faster.
 
 ### Costs and failure modes
 
@@ -100,8 +116,10 @@ feedback mechanism; it does not make Python execution itself faster.
 Two limits are especially easy to miss. First, `Any`, casts, suppressions, and
 dynamic loading can bypass static checks; a precise-looking return annotation
 does not establish a runtime fact. Second, valid types do not ensure that values
-satisfy an operation's preconditions: the generic `first` helper type-checks for
-an empty batch but raises `ValueError` at runtime.
+satisfy an operation's preconditions: `workers: int` does not establish a positive
+count. Boundary validation establishes that constraint at runtime. Some structural
+preconditions can become static contracts: the [generic batch](state-and-generics.md#preserve-relationships-with-generics)
+requires a first item, so a checked caller cannot construct an empty batch.
 
 Types also do not establish correct gradients, absence of data leakage, good labels,
 numerical stability, race freedom, or resource ownership. Those need other evidence.

@@ -9,7 +9,9 @@ relative filenames and heading anchors rather than references to numbered sectio
 
 Add independent sections using this structure:
 
-1. An actual ML mistake and a small concrete example.
+1. A concrete API or data-model mistake and a small example. Use familiar
+   application scenarios for foundations; explain any domain knowledge needed by
+   ML or other specialist applications.
 2. A self-contained passing snippet with all imports and documented contracts.
 3. A nearby `# rejected[diagnostic-kind]:` example that isolates the promised static
    rejection. Separate multiple expected kinds with commas.
@@ -24,6 +26,18 @@ Add independent sections using this structure:
 8. If a workaround is checker-specific, record a minimal reproduction, affected
    versions, runtime evidence, and a removal condition. Keep normal application
    examples free of broad suppressions.
+
+Write for a reader who has not followed the project's discussions. Explain the
+problem before prescribing a pattern, define unfamiliar terminology, and separate
+design principles from the reference tool stack. Keep development history in the
+changelog; turn past bugs into lasting lessons rather than review narratives.
+The detailed chapter owns the rationale. Keep the checklist and agent entry points
+short, linking to that chapter instead of repeating its full policy.
+
+Every failure example needs a recovery contract. Use typed outcomes when callers
+can retry, correct input, or reject a record and continue. For raising examples,
+state why that operation must unwind. A `Raises:` docstring alone does not expose
+a recoverable failure to the checker. See [errors and absence](errors-and-absence.md).
 
 Put the executable source in `examples/` and link it immediately before its
 documentation fence using `[Source](../examples/name.py)`. Paths in documentation

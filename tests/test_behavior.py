@@ -61,9 +61,9 @@ def test_undefined_precision_differs_from_zero() -> None:
         None,
         [],
         {},
-        {"name": "data", "num_classes": True},
-        {"name": "", "num_classes": 10},
-        {"name": "data", "num_classes": 1},
+        {"name": "data", "workers": True},
+        {"name": "", "workers": 10},
+        {"name": "data", "workers": 0},
     ],
 )
 def test_metadata_rejects_invalid_payload(payload: JsonValue) -> None:
@@ -74,11 +74,9 @@ def test_metadata_rejects_invalid_payload(payload: JsonValue) -> None:
 
 def test_metadata_discards_extra_fields() -> None:
     """The parser's documented extra-field policy keeps only the canonical schema."""
-    assert parse_metadata(
-        json.dumps({"name": "data", "num_classes": 3, "extra": 1})
-    ) == {
+    assert parse_metadata(json.dumps({"name": "data", "workers": 3, "extra": 1})) == {
         "name": "data",
-        "num_classes": 3,
+        "workers": 3,
     }
 
 
@@ -88,11 +86,12 @@ def test_centerer_uses_training_mean() -> None:
     assert fitted.transform(5.0) == pytest.approx(1.0)
 
 
-def test_empty_batch_is_rejected() -> None:
-    """A well-typed empty batch still requires runtime handling."""
-    batch: Batch[int] = Batch(())
-    with pytest.raises(ValueError):
-        first(batch)
+@pytest.mark.parametrize("rest", [(), (2, 3)])
+def test_batch_preserves_first_item(rest: tuple[int, ...]) -> None:
+    """Selection preserves a valid zero with or without remaining items."""
+    batch = Batch(0, rest)
+    assert first(batch) == 0
+    assert batch.rest == rest
 
 
 @pytest.mark.parametrize("count", [-1, 0, 1])

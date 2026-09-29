@@ -4,6 +4,11 @@
 
 ## Encode preprocessing state in the type
 
+State-dependent APIs occur in connections, transactions, and data processing.
+If a method works only after setup, separate types can make it unavailable before
+setup. Here a *centerer* subtracts a previously calculated mean: fitting on
+`(2, 4, 6)` establishes a mean of `4`, so transforming `5` gives `1`.
+
 **Mistake:** a scaler exposes `transform` before it has statistics, using
 `mean: float | None` and a runtime "not fitted" exception.
 
@@ -53,6 +58,11 @@ centered = fitted.transform(5.0)
 **Static guarantee:** `UnfittedCenterer` has no transformation operation. Callers
 working through this API must obtain a fitted value first.
 
+**Failure policy:** fitting an empty or nonfinite internal training set stops
+this operation; it offers no fallback model. Its exceptions signal unmet
+preconditions. An ingestion workflow that supports rejecting bad rows should
+validate them and expose typed outcomes before fitting.
+
 **Runtime obligation:** this is not Rust move semantics. The old unfitted object
 remains usable, and the public `FittedCenterer` constructor can be called directly.
 The pattern communicates permitted operations; it is not an unforgeable certificate
@@ -60,7 +70,7 @@ of training provenance. Validation-only fitting is still leakage even if it type
 
 ## Preserve relationships with generics
 
-**Mistake:** a helper accepts and returns `object`, erasing what kind of sample it
+**Mistake:** a helper accepts and returns `object`, erasing what kind of item it
 contains. Callers then cast the result back to the type they hoped to receive.
 
 Use a type parameter when an output's type depends on an input's type.
@@ -68,7 +78,7 @@ Use a type parameter when an output's type depends on an input's type.
 [Source](../examples/generic_batches.py)
 
 ```python
-"""Preserve the sample type through a batch selection helper."""
+"""Preserve an item's type while making an empty batch unrepresentable."""
 
 from dataclasses import dataclass
 from typing import Generic, TypeVar
@@ -78,39 +88,42 @@ T = TypeVar("T")
 
 @dataclass(frozen=True, slots=True)
 class Batch(Generic[T]):
-    """Group samples of one statically known type."""
+    """Group at least one item of a statically known type."""
 
-    samples: tuple[T, ...]
+    head: T
+    rest: tuple[T, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
-class LabeledSample:
-    """Pair a feature vector with its class index."""
+class Job:
+    """Identify work awaiting processing."""
 
-    features: tuple[float, ...]
-    label: int
+    name: str
 
 
 def first(batch: Batch[T]) -> T:
-    """Return the first sample, or raise ValueError for an empty batch."""
-    if not batch.samples:
-        raise ValueError("batch must be nonempty")
-    return batch.samples[0]
+    """Return the required first item without losing its type."""
+    return batch.head
 
 
-batch = Batch((LabeledSample((0.2, 0.8), label=1),))
-sample: LabeledSample = first(batch)
-# rejected[bad-assignment]: label: int = first(batch)
+batch = Batch(Job("report"), (Job("backup"),))
+job: Job = first(batch)
+# rejected[bad-assignment]: name: str = first(batch)
+# rejected[missing-argument]: empty: Batch[Job] = Batch()
 ```
 
-**Static guarantee:** `first(Batch[LabeledSample])` returns a `LabeledSample`.
+**Static guarantee:** `first(Batch[Job])` returns a `Job`. A **type parameter** such
+as `T` connects the batch's item type to the function's return type. Construction
+requires `head`, so `Batch()` is rejected before execution.
 The relationship survives without a cast. Reusing a type parameter is meaningful
 when it relates inputs, outputs, or fields; it is not decoration.
 
-**Runtime obligation:** `tuple[T, ...]` can be empty. If nonemptiness is central to
-an API, model a required first element and a remaining tuple rather than repeatedly
-checking it. A generic type also does not prove that every feature vector has the
-same length. Python generics do not imply Rust-style monomorphization or a speedup.
+**Runtime obligation:** this representation starts with an item already available.
+An external collection can still be empty: its adapter must either return a typed
+absence/failure or construct a batch from a validated first item. Do not turn an
+unchecked `items[0]` into a supposedly safe boundary. The remaining tuple may be
+empty, and a first item such as `0` remains valid. Python generics preserve type
+relationships; they do not make execution faster.
 
 ## Be precise about immutability
 
@@ -188,7 +201,9 @@ code consumes `Experiment.seed` as `int`; it never receives the unknown value.
 
 Schema failures raise `ValidationError`; malformed JSON in a complex environment
 value can raise `pydantic_settings.SettingsError` before model validation. Startup
-code should report either as a configuration failure. The
+code reports either and aborts startup in this example. A configuration editor
+that lets users correct values instead needs a typed failure outcome from its
+application boundary. The
 [settings tests](../tests/test_validation.py) isolate the environment with a
 fixture and cover source precedence and invalid values.
 
@@ -199,7 +214,8 @@ inference. See [settings management](https://docs.pydantic.dev/latest/concepts/p
 
 ## Build CLIs with pydantic-settings
 
-Use **pydantic-settings instead of hand-written argparse** for application CLIs.
+The guide recommends **pydantic-settings** for application CLIs so configuration
+and arguments can share one validated schema.
 Define arguments as typed model fields and run the command through `CliApp.run`.
 Use `BaseSettings` when command options also come from environment configuration.
 The CLI and environment then share field constraints rather than maintaining

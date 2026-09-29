@@ -92,7 +92,7 @@ The table distinguishes existing examples from decisions a new application must 
 | `bool` versus `int` | `True` can enter an integer-annotated API | The batch-count and metadata tests reject it where counts require actual integers |
 | `int` passed to a `float` parameter | A runtime `float` class pattern does not match an integer | The metric formatter handles both, with regression cases for `0` and `0.0` |
 | NaN and infinity | A float annotation does not mean finite; ordinary comparisons may not express the intended policy | Softmax, configuration, and SDK-response tests validate finiteness where their contracts require it |
-| Empty input | Mean, first-element selection, and batch counting need different policies | Centering and `first` reject empty input; batch counting returns zero |
+| Empty input | Mean, first-element selection, and batch counting need different policies | Centering rejects an empty training set at runtime; `Batch` requires a first item statically; batch counting returns zero |
 | Partial final batch | Rejecting, retaining, padding, and dropping affect training differently | Batch-count and iterator tests cover their declared policies; do not silently choose one for a caller |
 | Missing, null, extra, or malformed fields | These are different schema conditions | Metadata parsing ignores extras; the SDK adapter requires specific fields and rejects malformed values. Decide whether unknown keys should instead be errors for a particular config |
 | Integer versus string versus scalar wrapper | Coercion may change input meaning or erase an upstream error | The SDK's strict float schema accepts integers but rejects bool and text; settings intentionally parse text. Test each source's policy |
@@ -113,17 +113,17 @@ Likewise, `0`, `0.0`, and empty containers are falsy. Use an explicit absence ch
 when emptiness or zero is a legitimate value.
 [Python truth-value rules](https://docs.python.org/3.11/library/stdtypes.html#truth-value-testing).
 
-### A bug this review found in the guide itself
+### Match every runtime representation the annotation accepts
 
-The original [metric formatter](../examples/reasoned_absence.py) accepted
-`float | Absent` but matched only `float(score)` for numeric input. Pyrefly accepted
-`format_precision(0)`, yet the integer missed that branch and reached `assert_never`
-at runtime. The formatter now matches both integers and floats, and
-[regression tests](../tests/test_practical_defaults.py) exercise both representations.
+The [metric formatter](../examples/reasoned_absence.py) accepts `float | Absent`.
+A caller may pass `0`, which satisfies the numeric annotation but does not match
+the runtime class pattern `float(score)`. A handler covering only that pattern
+would let the integer reach `assert_never` at runtime. Match both integers and
+floats; the [tests](../tests/test_practical_defaults.py) exercise both representations.
 
-The fix needs one additional pattern, not a new numeric class hierarchy. This is
-an example of useful simplification: preserve the public contract and repair its
-runtime handling with the smallest change that covers the actual edge case.
+One additional pattern covers the contract without a new numeric class hierarchy.
+When simplifying a handler, preserve every runtime representation admitted by its
+public annotation.
 
 ## Work through the decision on a real boundary
 

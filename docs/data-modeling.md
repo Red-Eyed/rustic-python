@@ -4,8 +4,9 @@
 
 ## Parse untrusted data into a precise record
 
-**Mistake:** a JSON dictionary is annotated as a batch record and passed downstream
-without checking its fields. An annotation or `cast` does not validate a payload.
+**Mistake:** a JSON dictionary is annotated as a job configuration and passed
+downstream without checking its fields. An annotation or `cast` does not validate
+a payload.
 
 Accept the concrete external representation, here JSON text, and parse it directly
 with Pydantic. Do not expose `Any` or `object` in application APIs. Use a
@@ -16,7 +17,7 @@ dataclasses; validation does not require carrying Pydantic through every functio
 [Source](../examples/validated_records.py)
 
 ```python
-"""Validate a small dataset metadata record before using its fields."""
+"""Validate job configuration before starting an operation."""
 
 from typing import Annotated
 
@@ -25,25 +26,25 @@ from typing_extensions import TypedDict
 
 
 @with_config(ConfigDict(strict=True, extra="ignore"))
-class DatasetMetadata(TypedDict):
-    """Describe the required dataset identity and classifier output size."""
+class JobMetadata(TypedDict):
+    """Require a job name and a positive worker count."""
 
     name: Annotated[str, StringConstraints(pattern=r"\S")]
-    num_classes: Annotated[int, Field(ge=2)]
+    workers: Annotated[int, Field(ge=1)]
 
 
-METADATA = TypeAdapter[DatasetMetadata](DatasetMetadata)
+METADATA = TypeAdapter[JobMetadata](JobMetadata)
 
 
-def parse_metadata(payload: str) -> DatasetMetadata:
-    """Parse JSON metadata; ignore extra keys or raise ValidationError."""
+def parse_metadata(payload: str) -> JobMetadata:
+    """Load startup JSON; invalid configuration aborts with ValidationError."""
     return METADATA.validate_json(payload)
 
 
-metadata = parse_metadata('{"name": "cifar10", "num_classes": 10}')
-classes = metadata["num_classes"]
-# rejected[bad-typed-dict-key]: classes = metadata["class_count"]
-# rejected[bad-typed-dict-key]: broken: DatasetMetadata = {"name": "cifar10"}
+metadata = parse_metadata('{"name": "report", "workers": 4}')
+workers = metadata["workers"]
+# rejected[bad-typed-dict-key]: workers = metadata["worker_count"]
+# rejected[bad-typed-dict-key]: broken: JobMetadata = {"name": "report"}
 # rejected[bad-argument-type]: parse_metadata({})
 ```
 
@@ -53,13 +54,26 @@ are rejected.
 
 **Runtime obligation:** only the parser establishes that the external value satisfies
 the schema. Malformed JSON and invalid fields raise `ValidationError`.
+This example loads configuration once at startup; invalid configuration stops
+that operation. If callers can correct the input or reject a record and continue,
+translate `ValidationError` into a typed outcome as shown in
+[errors and absence](errors-and-absence.md#make-expected-failures-explicit).
 `TypedDict` itself is not a runtime validator. Here strict validation
-rejects boolean, string, and float class counts; extra metadata keys are ignored.
+rejects boolean, string, and float worker counts; extra metadata keys are ignored.
 Use `typing_extensions.TypedDict` for Pydantic's Python 3.11 compatibility.
 Parse dates into
 `date` and timestamps into `datetime` at this same boundary.
 
 ## Model alternatives as alternatives
+
+A tagged union pairs each alternative with only the fields it needs. For example,
+an email destination needs an address, while a file destination needs a path;
+one record with both fields optional also admits neither or both.
+
+The executable example applies this idea to two prediction tasks. A classifier
+chooses a category and needs a class count. A regression model predicts a number;
+here its error calculation needs a positive threshold. No training code is needed
+for the lesson: focus on which fields belong to each alternative.
 
 **Mistake:** one configuration has a string `task`, an optional `num_classes`, and
 an optional regression threshold. It admits meaningless combinations.
@@ -128,8 +142,10 @@ arguments fail checking. A plain `Enum` works for labels without associated data
 record variants also carry data.
 
 **Runtime obligation:** the type `int` does not establish a positive class count.
-Construction validates the numerical constraint. `@final` prevents subclassing in
-checked code; it does not seal Python classes at runtime.
+Construction validates the numerical constraint. Like the startup parser above,
+`parse_task` stops setup on invalid configuration; it does not offer a recovery
+branch. `@final` prevents subclassing in checked code; it does not seal Python
+classes at runtime.
 
 For example, `{"kind": "classification", "num_classes": 10}` selects
 `Classification`. Missing or unknown tags fail; a classification payload with
@@ -190,6 +206,11 @@ unchecked input actually reaches it.
 
 ## Optional: nominal tags at controlled boundaries
 
+A **nominal tag** distinguishes values by a declared name even when their
+underlying representations match. This scientific example distinguishes raw
+prediction scores (*logits*) from probabilities. The softmax calculation converts
+scores to positive weights that sum to one.
+
 `NewType` can prevent interchange at an API you control. It is not the default
 recommendation for numerical code. The small example below demonstrates the typing
 mechanism; its tuple-based softmax is not a proposed tensor or training API.
@@ -231,6 +252,10 @@ probabilities = softmax(raw)
 and the other nominal type. It does not prove that the scores are logits.
 `Logits(...)` does not validate or copy its input, and normal operations need not
 preserve a newtype. See [Python's NewType documentation](https://docs.python.org/3.11/library/typing.html#newtype).
+
+**Failure policy:** this internal calculation requires nonempty, finite scores.
+Violating that assumption stops the calculation; it does not produce a fallback
+distribution. Handle recoverable input rejection at the application's boundary.
 
 **Why this is usually a poor tensor strategy:** framework operations use their
 own tensor signatures, not application-specific `Logits`/`Probabilities` tags.

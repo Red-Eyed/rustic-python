@@ -70,13 +70,23 @@ Prefer standard-library `itertools` where it has the needed operation. For this
 guide's 3.11 baseline, `itertools.batched` is unavailable: it was introduced in
 3.12, with `strict` added in 3.13. [Python's batched documentation](https://docs.python.org/3/library/itertools.html#itertools.batched).
 
+The strict iterator's failure policy stops processing when a promised complete
+batch cannot be formed. Since iteration is lazy, the exception occurs while
+consuming it, not necessarily when creating it. If incomplete batches are a
+supported outcome, expose that decision explicitly instead of documenting a
+recoverable exception as the only contract.
+
 ## Validation libraries complement static checking
 
-Use Pydantic for external schemas, including small ones: `BaseModel` for model
-objects, `TypeAdapter` for plain typed structures, and validated dataclasses when
+The guide recommends Pydantic for external schemas, including small ones:
+`BaseModel` for model objects, `TypeAdapter` for plain typed structures, and validated dataclasses when
 that interface fits. Use pydantic-settings for environment configuration and
 [CLIs](state-and-generics.md#build-clis-with-pydantic-settings), instead of
-hand-written argparse. See
+hand-written argparse so argument and configuration constraints share a schema.
+These are the guide's reference tools. The underlying requirement is to validate
+unknown data and expose a precise contract; adding a dependency alone does not
+establish either guarantee. In an existing project, assess its validation stack
+against those requirements before proposing a replacement. See
 [data modeling](data-modeling.md), [settings](state-and-generics.md#load-settings-at-startup),
 and the [SDK adapter](third-party-boundaries.md) for executable examples.
 

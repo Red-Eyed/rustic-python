@@ -18,7 +18,7 @@ Pyrefly prevents.
 
 | Kind of test | Question | Example in this repository |
 | --- | --- | --- |
-| Static rejection | Does a forbidden operation fail checking for the intended reason? | Reading a nonexistent key from typed dataset metadata |
+| Static rejection | Does a forbidden operation fail checking for the intended reason? | Reading a nonexistent key from typed job configuration |
 | Unit behavior | Does this operation produce the right observable result? | Centering `7.0` around `4.0` produces `3.0` |
 | Boundary/contract | Does a component honor validation, failure, and mutation promises? | Rejecting malformed SDK output and preserving the request |
 | Integration | Do a few real components work together? | Reading a temporary file and applying fitted preprocessing |

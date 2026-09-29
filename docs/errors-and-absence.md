@@ -7,8 +7,8 @@
 **Mistake:** a caller must distinguish accepted and rejected labels, but the
 parser returns `-1` or an empty dictionary that hides the rejection reason.
 
-Use typed outcomes for recoverable failures: cases for which the caller has a
-supported decision such as retrying, choosing a fallback, requesting corrected
+This guide recommends typed outcomes for recoverable failures: cases for which
+the caller has a supported decision such as retrying, choosing a fallback, requesting corrected
 input, or recording a rejected row and continuing. Use exceptions when the
 operation has no meaningful recovery path and must unwind, rather than pretending
 normal processing can continue. Broken internal invariants are a typical example.
@@ -24,6 +24,13 @@ the checker; a plain `Config` return annotation does not declare raised exceptio
 Callers must narrow the result before consuming its success payload. Domain-specific
 unions can express the same requirement without generic success/error containers.
 
+A `Raises:` docstring explains behavior to a reader, but it does not make a
+recoverable failure part of the checked return contract. If the caller can reject
+a record and continue, declare that outcome in the return type. Reserve exception
+documentation for failures that must unwind the operation and for the underlying
+library behavior an adapter translates. Documentation still explains recovery
+policy; the type makes using a failure as a success a checker error.
+
 The purpose is to turn incorrect use into a checker error before execution.
 For each proposed result API, identify the invalid operation it should reject:
 reading a success payload before narrowing, confusing payload types, or forgetting
@@ -35,13 +42,6 @@ while accepting the remaining 988. Typed outcomes make both paths explicit, so
 rejected rows cannot be mistaken for parsed values. A configuration loader can
 likewise return distinct read and validation errors for the caller to handle.
 
-The maintainers of the archived `result` library questioned the practical fit of
-this programming style in Python's ecosystem. That is a useful caution against
-adopting it wholesale, not evidence that all explicit domain alternatives are
-unhelpful. See [the maintenance discussion](https://github.com/rustedpy/result/issues/201#issuecomment-2559270994).
-The useful goal here is a checked contract for recoverable failures, not imitation
-of a functional library. Keep only the variants and handling the application needs.
-
 **A result annotation is not a no-throw guarantee.** Python's type system does not
 track all exceptions an operation can raise. At an integration boundary, catch
 the specific expected exceptions and convert them to declared error variants.
@@ -50,6 +50,8 @@ Do not catch every exception merely to claim that the signature is exhaustive:
 that can disguise programming defects as routine domain outcomes. A deliberately
 broad SDK adapter needs the separate policy described in
 [third-party boundaries](third-party-boundaries.md#why-catch-exception-here).
+
+## Choose a representation for the caller's decisions
 
 Domain-specific alternatives such as `AcceptedRow | RejectedRow` can communicate
 more than generic success/failure. Use `Result[T, E]` when the shared success/error
@@ -65,6 +67,10 @@ with structural pattern matching and `assert_never`, rather than adding unchecke
 unwrap methods or a hierarchy of result abstractions. These are concrete class
 variants, not structurally interchangeable protocols. `Generic[T]` is Python 3.11
 syntax for type parameters; it introduces no shared result implementation.
+
+The parser below handles integer labels in an imported file: `"7"` is accepted;
+`"cat"` is rejected with a reason. Its caller can report the rejection and continue
+with other records. The same contract fits form fields or configuration editors.
 
 A low-level validator may raise because that is its library contract. Translate
 recoverable validation errors into typed outcomes at the application boundary.
@@ -170,6 +176,10 @@ the operation. Use domain-specific variants when success/failure does not captur
 all supported caller decisions.
 
 ## Know where a failure happened
+
+Once callers handle both outcomes, decide how much diagnostic context they need.
+The following choices matter for larger imports and integrations; they do not
+require extending the small Result implementation.
 
 A result carries the error value you put into it. It does not automatically
 record the history of the computation. Suppose row 1843 in a dataset contains

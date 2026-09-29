@@ -1,6 +1,6 @@
 ---
 name: rustic-python
-description: Design or review Python type contracts, third-party boundaries, protocols, and pytest tests using practical Rust-inspired patterns. Use for Python type-safety work, especially ML and data pipelines, or when asked to apply the Rustic Python guide.
+description: Design or review Python type contracts, third-party boundaries, protocols, and pytest tests using practical Rust-inspired patterns. Use for Python API and data-model design, or when asked to apply the Rustic Python guide.
 ---
 
 # Rustic Python
@@ -26,37 +26,20 @@ claim the latest revision without a successful check.
 
 ## Workflow
 
-1. Identify the operation, the mistake to prevent, and the relevant boundary.
-   Prefer designs that make the mistake a type-checking error before execution;
-   verify the rejected call or access, not just that valid code passes.
-2. Read the relevant chapter below and its linked examples. Read only what the
-   current task needs; do not load the whole book.
-3. Choose the simplest representation that preserves the required contract.
-   Keep native tensors and arrays; wrappers need a concrete boundary benefit.
-   Use typed outcomes for recoverable failures and exceptions when an operation
-   has no supported recovery path and must unwind. Model retry, fallback, corrected
-   input, and record rejection as caller decisions when supported. Use the small
-   custom Ok/Err union when generic success/failure fits. Convert specific recoverable
-   library exceptions at boundaries; leave programming defects visible. Result makes known
-   alternatives checkable but does not prove that unexpected exceptions cannot escape.
-   Handle variants with structural pattern matching and assert_never; avoid
-   a shared result base class, third-party result packages, and unchecked unwrap.
-4. Keep `Any` and `object` out of application APIs. Parse serialized external data
-   directly with Pydantic; contain unknown SDK values inside adapters that return
-   precise types. Load environment configuration with
-   pydantic-settings. Build CLIs with its CliApp and typed argument models instead
-   of hand-written argparse. Use discriminated unions for tagged payloads. Keep validation
-   outside compiled inference; pass tensors and plain NamedTuple/TypedDict records
-   to the core. Preserve meaningful failures and absence reasons. Prefer small
-   protocols at substitution points and closed unions for exhaustive handling.
-5. Verify with the target project's checker and relevant behavioral tests.
-   Distinguish static guarantees, runtime validation, and conventions. Report
-   checker workarounds with evidence and a removal condition.
-6. Keep `getattr`, `setattr`, `hasattr`, `delattr`, and equivalent reflection out
-   of application logic. Prefer declared fields, small protocols, explicit variants,
-   and typed registries. Permit only documented, localized integration seams or
-   tests that require dynamic behavior; recover precise types at that boundary.
-   See [dynamic attribute access](docs/third-party-boundaries.md#restrict-dynamic-attribute-access).
+1. Identify the operation, the mistake to prevent, and the caller's supported
+   decisions. Read [the application workflow](docs/agent-guide.md) and only the
+   relevant chapters below.
+2. Choose the simplest representation that makes incorrect use a checker error.
+   Preserve precise records, typed recoverable outcomes, and meaningful absence.
+   Keep necessary reflection and unknown library values inside documented adapters.
+3. Follow the chapter's contract, including its runtime obligations. The reference
+   stack uses Pydantic, pydantic-settings, and a small custom Ok/Err union; adapt
+   implementation choices to the target project's constraints. Do not add a
+   result framework, unchecked unwrap, or exceptions as the sole contract for
+   recoverable failures. A Result annotation does not prove exception freedom.
+4. Verify the promised rejection with the project's checker and runtime behavior
+   with relevant tests. Use [the checklist](docs/checklist.md) for a final pass and
+   report which guarantees are static, runtime-validated, or convention only.
 
 ## Topic references
 

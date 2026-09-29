@@ -181,7 +181,7 @@ annotation, one guard, one adapter, or one justified comment.
 
 The guide also records checker-accepted failures. A `float` annotation permits an
 integer, which exposed a bug in the original metric formatter's class-pattern
-matching. See [the numeric edge case](practical-choices.md#a-bug-this-review-found-in-the-guide-itself).
+matching. See [the numeric edge case](practical-choices.md#match-every-runtime-representation-the-annotation-accepts).
 
 This is not solved by declaring all checks untrustworthy. Use static checks for
 the contracts they enforce, and behavioral tests for the properties they do not.

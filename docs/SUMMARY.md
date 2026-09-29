@@ -17,10 +17,10 @@
 - [Practical choices and edge cases](practical-choices.md)
 - [Working with checker limitations](checker-limitations.md)
 
-# Scientific code and testing
+# Testing and applications
 
-- [Tensors and scientific correctness](ml-correctness.md)
 - [Testing with pytest](testing.md)
+- [Tensors and scientific correctness](ml-correctness.md)
 - [Supplementary libraries](libraries.md)
 
 # Using and extending the guide

@@ -4,6 +4,11 @@
 
 ## Require only the interface you use
 
+A **protocol** describes the operations a caller needs. An implementation matches
+by providing compatible methods; it does not need to inherit from the protocol.
+Here a transform takes numbers and returns numbers, a contract that can serve
+coordinate conversion, signal processing, or feature preparation.
+
 **Mistake:** feature preprocessing depends on a particular trainer or dataset class,
 even though it only needs one transformation method.
 
@@ -236,6 +241,11 @@ for valid input. The tests supply a correctly typed plugin that drops a coordina
 the wrapper catches that violation at runtime. A wrapper must preserve the original
 error policy or expose its change explicitly. Retrying, caching, and swallowing
 errors are observable behaviors, not harmless decorations.
+
+**Failure policy:** this pipeline stops when a transform violates its finite-value
+or length contract. Continuing with corrupt output is unsupported, so guards raise.
+A pipeline that supports skipping an item or selecting a fallback needs to declare
+those recoverable outcomes in its interface and preserve them in every wrapper.
 
 ### Plugin registration is not plugin discovery
 

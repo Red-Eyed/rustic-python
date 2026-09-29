@@ -2,6 +2,11 @@
 
 [Project overview and reading path](../README.md)
 
+This optional chapter applies the earlier boundary and record patterns to
+scientific code. A *tensor* is a multidimensional numerical array; *inference*
+means running a model to produce predictions. Framework-specific performance and
+numerical obligations complement the API guarantees taught in the core chapters.
+
 Use native tensors in model code. `Tensor` describes the object type; it does not
 establish every numerical property. Strengthen configuration, batch structure, and
 component interfaces where practical, then check numerical behavior separately.
@@ -75,6 +80,10 @@ output = scale_logits((2.0, -2.0), parameters)
 
 **Static guarantee:** callers cannot substitute the Pydantic config for the
 declared inference parameters, or read a nonexistent output field.
+
+**Failure policy:** invalid startup options abort inference setup here. A service
+that supports rejecting a request and continuing should translate validation
+errors into a typed outcome before calling the numerical core.
 
 **Runtime obligation:** only `prepare_inference` validates temperature. Directly
 constructing `InferenceParameters(0.0)` bypasses that guarantee; plain records are
