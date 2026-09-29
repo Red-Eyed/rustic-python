@@ -2,6 +2,15 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [60ea01b](https://github.com/Red-Eyed/rustic-python/commit/60ea01b) — 2026-09-29
+
+**Clearer state-dependent API example — 0.8.3**
+
+- Replace the centerer with a draft email that must acquire a recipient before
+  `send` is available, making the premature call a checker error.
+- Demonstrate successful delivery through an in-memory callback and explain
+  that address validation and delivery failures remain separate concerns.
+
 ## [bf83b9a](https://github.com/Red-Eyed/rustic-python/commit/bf83b9a) — 2026-09-29
 
 **Concise alternatives with checked source links — 0.8.2**
