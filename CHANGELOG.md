@@ -2,6 +2,24 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [b51da32](https://github.com/Red-Eyed/rustic-python/commit/b51da3281118f26815251eb980b26079f8edf25e) — 2026-09-29
+
+**A guide for general Python readers — 0.6.0**
+
+- Add prerequisites and a first-example walkthrough, align the README and book
+  reading order, and explain ML concepts where specialist examples remain.
+- Separate design principles from the recommended tool stack, replace discussion
+  history with lasting lessons, and shorten the checklist and agent instructions.
+- Clarify recovery contracts throughout the lessons. A `Raises:` docstring does
+  not expose recoverable failures to the type checker; typed outcomes do.
+- Change the introductory record example from `DatasetMetadata` with `num_classes`
+  to `JobMetadata` with a positive `workers` count. Readers reusing that example
+  should update the type name and JSON field.
+- Change the generic example from `Batch(samples)` to `Batch(head, rest=())`.
+  `first` now returns the required first item without an empty-batch exception;
+  checked construction rejects a missing first item. External collections still
+  need an explicit empty-input policy before constructing the batch.
+
 ## [4a36831](https://github.com/Red-Eyed/rustic-python/commit/4a36831b801537d48e22115c04322b544dc5e0f0) — 2026-09-26
 
 **Recoverability determines failure representation — 0.5.3**
