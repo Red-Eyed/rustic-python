@@ -6,14 +6,16 @@ A service supports classification and regression. Classification needs a class c
 
 **Typical Python**
 
-```text
+```python,ignore
 from dataclasses import dataclass
+
 
 @dataclass
 class Task:
     kind: str
     num_classes: int | None = None
     huber_delta: float | None = None
+
 
 task = Task(kind="classification", huber_delta=0.5)
 ```

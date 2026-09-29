@@ -6,7 +6,7 @@ A classifier passes scores to a loss function. Both raw logits and normalized pr
 
 **Typical Python**
 
-```text
+```python,ignore
 probabilities = model(inputs).softmax(dim=-1)
 loss = cross_entropy(probabilities, labels)
 ```
@@ -15,7 +15,7 @@ Ordinary `Tensor` annotations cannot identify this error. The call is type-compa
 
 **Alternative**
 
-```text
+```python,ignore
 logits = model(inputs)
 loss = cross_entropy(logits, labels)
 ```

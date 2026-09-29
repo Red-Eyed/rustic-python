@@ -6,7 +6,7 @@ A centerer must learn a mean before transforming values. Fitting `(2, 4, 6)` est
 
 **Typical Python**
 
-```text
+```python,ignore
 class Centerer:
     def __init__(self) -> None:
         self.offset: float | None = None
@@ -15,6 +15,7 @@ class Centerer:
         if self.offset is None:
             raise RuntimeError("not fitted")
         return value - self.offset
+
 
 Centerer().transform(5.0)
 ```

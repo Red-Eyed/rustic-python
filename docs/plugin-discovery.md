@@ -6,7 +6,7 @@ An application discovers a third-party plugin at startup. Discovery gives it an 
 
 **Typical Python**
 
-```text
+```python,ignore
 plugin = entry_point.load()
 prediction = plugin(request)
 ```
@@ -16,7 +16,7 @@ implicit. A wrong interface is discovered only when the plugin is called.
 
 **Alternative**
 
-```text
+```python,ignore
 vendor_call = entry_point.load()
 predictor = bind_vendor(vendor_call)
 ```

@@ -6,7 +6,7 @@ A service takes its worker count from the environment. Every component should us
 
 **Typical Python**
 
-```text
+```python,ignore
 import os
 
 workers = int(os.environ.get("APP_WORKERS", "4"))
@@ -16,14 +16,16 @@ The conversion accepts negative counts and leaves the schema and defaults scatte
 
 **Alternative**
 
-```text
+```python,ignore
 from typing import Annotated
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="APP_")
     workers: Annotated[int, Field(gt=0)] = 4
+
 
 settings = Settings()
 workers = settings.workers

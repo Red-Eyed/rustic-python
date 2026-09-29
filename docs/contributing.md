@@ -12,9 +12,9 @@ relative filenames and heading anchors rather than references to numbered sectio
 Give each concept its own short page in this order:
 
 1. Model a concrete situation and the decision the caller needs to make.
-2. Show idiomatic Python for that situation. Use a brief `text` sketch where the
-   point is a conventional pattern, not a complete runnable source file. Do not
-   invent strawman use of `object`, `Any`, or `Err` as typical Python.
+2. Show idiomatic Python for that situation. Use a brief `python,ignore` sketch
+   where the point is a conventional pattern, not a complete runnable source file.
+   Do not invent strawman use of `object`, `Any`, or `Err` as typical Python.
 3. Show the better alternative. Link a complete Python listing when the lesson
    has executable example source; use a short sketch for small prose lessons.
 4. After the listing, state the observed outcome and why the change helps. Name
@@ -24,6 +24,8 @@ Give each concept its own short page in this order:
 
 Complete examples need a nearby `# rejected[diagnostic-kind]:` statement that
 isolates each claimed static rejection. Separate multiple kinds with commas.
+The `python,ignore` fence highlights a contextual sketch; it does not claim that
+the sketch is an independently checked complete listing.
 
 Write for a reader who has not followed the project's discussions. Explain the
 problem before prescribing a pattern, define unfamiliar terminology, and separate

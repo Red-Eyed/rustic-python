@@ -6,7 +6,7 @@ An application calls an untyped prediction SDK. The SDK can mutate its request, 
 
 **Typical Python**
 
-```text
+```python,ignore
 prediction = sdk.predict({"instances": [0.2, 0.8]})
 confidence = prediction["confidence"]
 ```

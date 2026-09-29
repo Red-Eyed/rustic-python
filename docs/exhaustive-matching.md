@@ -6,7 +6,7 @@ A data pipeline decides which splits may fit a preprocessor. Later, someone adds
 
 **Typical Python**
 
-```text
+```python,ignore
 def may_fit_preprocessor(split: str) -> bool:
     match split:
         case "train":

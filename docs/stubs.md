@@ -6,9 +6,10 @@ A dependency returns the output name `"embedding"`, but its type stub says the r
 
 **Typical Python**
 
-```text
+```python,ignore
 # vendor.pyi
 def output_name() -> int: ...
+
 
 # caller
 name: str = output_name()
@@ -18,9 +19,10 @@ The checker reports `bad-assignment` even though the runtime result is a string.
 
 **Alternative**
 
-```text
+```python,ignore
 # corrected vendor.pyi
 def output_name() -> str: ...
+
 
 # unchanged caller
 name: str = output_name()

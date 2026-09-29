@@ -6,9 +6,10 @@ A helper selects the first job from a batch. Callers need its job type, and sele
 
 **Typical Python**
 
-```text
+```python,ignore
 def first(items):
     return items[0]
+
 
 job = first(jobs)
 ```

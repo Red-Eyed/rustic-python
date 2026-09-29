@@ -6,9 +6,10 @@ A stream must be processed in complete batches while preserving its element type
 
 **Typical Python**
 
-```text
+```python,ignore
 def batches(items, size):
-    return [items[start:start + size] for start in range(0, len(items), size)]
+    return [items[start : start + size] for start in range(0, len(items), size)]
+
 
 batches([1, 2, 3, 4, 5], 2)
 ```

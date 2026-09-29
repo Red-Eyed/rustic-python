@@ -6,9 +6,10 @@ An order service passes customer IDs and order IDs between helpers. Both are int
 
 **Typical Python**
 
-```text
+```python,ignore
 def order_reference(customer_id: int, order_id: int) -> str:
     return f"customer:{customer_id}/order:{order_id}"
+
 
 customer_id, order_id = 7, 42
 reference = order_reference(order_id, customer_id)

@@ -6,7 +6,7 @@ A loader needs to count batches. Five items in groups of two means three batches
 
 **Typical Python**
 
-```text
+```python,ignore
 batches = sample_count // batch_size
 ```
 

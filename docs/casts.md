@@ -6,7 +6,7 @@ An external JSON value must become a job record before application code reads it
 
 **Typical Python**
 
-```text
+```python,ignore
 from typing import cast
 
 metadata = cast(JobMetadata, decoded_payload)
@@ -16,7 +16,7 @@ The checker trusts this assertion even if required keys are missing. The cast pe
 
 **Alternative**
 
-```text
+```python,ignore
 metadata = parse_metadata(payload_json)
 ```
 

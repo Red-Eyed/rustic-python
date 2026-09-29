@@ -6,7 +6,7 @@ A command accepts a positive worker count. Its application code should use a dec
 
 **Typical Python**
 
-```text
+```python,ignore
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -19,13 +19,15 @@ The namespace does not declare the expected field for the checker. The typo fail
 
 **Alternative**
 
-```text
+```python,ignore
 from typing import Annotated
 from pydantic import Field
 from pydantic_settings import BaseSettings, CliApp
 
+
 class Arguments(BaseSettings):
     workers: Annotated[int, Field(gt=0)] = 4
+
 
 options = CliApp.run(Arguments, cli_args=["--workers", "4"])
 workers = options.workers

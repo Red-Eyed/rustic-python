@@ -1,6 +1,6 @@
 [project]
 name = "rustic-python"
-version = "0.7.1"
+version = "0.7.2"
 description = "A guide to precise Python types and explicit contracts, with scientific applications"
 readme = "README.md"
 requires-python = ">=3.11"

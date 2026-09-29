@@ -6,7 +6,7 @@ A centerer must work below, at, and above its fitted mean. Each case should be i
 
 **Typical Python**
 
-```text
+```python,ignore
 def test_centering(fitted_centerer):
     for value, expected in [(1.0, -3.0), (4.0, 0.0), (7.0, 3.0)]:
         assert fitted_centerer.transform(value) == expected

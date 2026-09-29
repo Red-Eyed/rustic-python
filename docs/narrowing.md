@@ -6,9 +6,10 @@ A helper recognizes nonempty text in a `str | int` value. Its caller wants to st
 
 **Typical Python**
 
-```text
+```python,ignore
 def is_nonempty_text(value: str | int) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
 
 def normalize_name(value: str | int) -> str:
     if is_nonempty_text(value):

@@ -6,7 +6,7 @@ A test requests a file stream from a fixture. The fixture yields a stream, while
 
 **Typical Python**
 
-```text
+```python,ignore
 def test_contents(sample_stream):
     assert sample_stream.read_text() == "2.0\n4.0\n6.0\n"
 ```
@@ -16,16 +16,18 @@ Without the parameter annotation, that interface is not declared in the test.
 
 **Alternative**
 
-```text
+```python,ignore
 from collections.abc import Iterator
 from typing import TextIO
 
 import pytest
 
+
 @pytest.fixture
 def sample_stream(sample_file) -> Iterator[TextIO]:
     with sample_file.open() as stream:
         yield stream
+
 
 def test_contents(sample_stream: TextIO) -> None:
     assert sample_stream.read() == "2.0\n4.0\n6.0\n"

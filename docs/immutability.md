@@ -6,12 +6,14 @@ Several components share feature configuration. One component must not silently 
 
 **Typical Python**
 
-```text
+```python,ignore
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class Config:
     features: list[str]
+
 
 config = Config(["height", "width"])
 config.features.append("area")

@@ -6,7 +6,7 @@ A processing pipeline supports independently added operations. Scaling and clipp
 
 **Typical Python**
 
-```text
+```python,ignore
 def apply(values, operation):
     if operation == "scale":
         return tuple(value * 2 for value in values)

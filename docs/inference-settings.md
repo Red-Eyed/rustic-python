@@ -6,7 +6,7 @@ A model reads a positive temperature setting. Parsing external configuration sho
 
 **Typical Python**
 
-```text
+```python,ignore
 def predict(logits, payload):
     config = InferenceConfig.model_validate_json(payload)
     return logits / config.temperature

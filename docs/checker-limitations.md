@@ -8,7 +8,7 @@ without weakening the application's checks.
 
 **Reproduction**
 
-```text
+```python,ignore
 def record_name(payload: object) -> str:
     match payload:
         case {"name": str(name)}:
@@ -23,7 +23,7 @@ application record type.
 
 **Scoped repair**
 
-```text
+```python,ignore
 def record_name(payload: object) -> str:
     match payload:
         # Pyrefly 1.3.1 mapping-pattern defect; remove once fixed.

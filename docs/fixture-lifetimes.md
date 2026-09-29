@@ -6,7 +6,7 @@ A test reads a file through a fixture. The file must close even if setup or the 
 
 **Typical Python**
 
-```text
+```python,ignore
 stream = path.open()
 assert read_value(stream) == expected
 stream.close()
@@ -16,7 +16,7 @@ A failed assertion skips `close()`. Cleanup depends on the test reaching its fin
 
 **Alternative**
 
-```text
+```python,ignore
 @pytest.fixture
 def sample_stream(sample_file):
     with sample_file.open(encoding="utf-8") as stream:

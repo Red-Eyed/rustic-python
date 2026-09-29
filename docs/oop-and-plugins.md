@@ -6,13 +6,15 @@ A preprocessing helper accepts interchangeable transforms. Each must return a nu
 
 **Typical Python**
 
-```text
+```python,ignore
 def prepare(values, transform):
     return transform.transform(values)
+
 
 class Describe:
     def transform(self, values):
         return f"{len(values)} features"
+
 
 features = prepare((1.0, 2.0), Describe())
 ```

@@ -8,7 +8,7 @@ something different: predictions were made, but none was correct.
 
 **Typical Python**
 
-```text
+```python,ignore
 def precision(true_positives: int, false_positives: int) -> float:
     total = true_positives + false_positives
     return true_positives / total if total else 0.0

@@ -6,9 +6,10 @@ An importer reads integer labels. A malformed row should be reported while valid
 
 **Typical Python**
 
-```text
+```python,ignore
 def parse_label(raw: str) -> int:
     return int(raw)
+
 
 labels = [parse_label(raw) for raw in ("7", "cat", "2")]
 ```

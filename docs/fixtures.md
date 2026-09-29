@@ -6,7 +6,7 @@ Several tests need the same training values, fitted centerer, and file of sample
 
 **Typical Python**
 
-```text
+```python,ignore
 def test_file(tmp_path):
     values = (2.0, 4.0, 6.0)
     fitted = UnfittedCenterer().fit(values)

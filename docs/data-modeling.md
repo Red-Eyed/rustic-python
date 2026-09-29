@@ -6,7 +6,7 @@ A worker receives job metadata. Every job needs a name and a positive worker cou
 
 **Typical Python**
 
-```text
+```python,ignore
 metadata: dict[str, str | int] = {"name": "report", "workers": 4}
 workers = metadata["worker_count"]
 ```

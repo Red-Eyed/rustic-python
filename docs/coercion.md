@@ -6,7 +6,7 @@ An SDK promises numeric confidence but returns `"0.8"`. The application must dec
 
 **Typical Python**
 
-```text
+```python,ignore
 confidence = float(payload["confidence"])
 ```
 
@@ -14,12 +14,14 @@ The conversion silently accepts the string. Successful parsing does not establis
 
 **Alternative**
 
-```text
+```python,ignore
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat
+
 
 class Prediction(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
     confidence: FiniteFloat = Field(ge=0, le=1)
+
 
 prediction = Prediction.model_validate_json(payload_json)
 ```

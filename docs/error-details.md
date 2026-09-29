@@ -6,7 +6,7 @@ An importer rejects row 1843. Its caller needs enough information to identify th
 
 **Typical Python**
 
-```text
+```python,ignore
 rejected = []
 for raw in rows:
     try:
@@ -20,15 +20,17 @@ Several identical bad values produce indistinguishable reports.
 
 **Alternative**
 
-```text
+```python,ignore
 from dataclasses import dataclass
 from pathlib import Path
+
 
 @dataclass(frozen=True)
 class RejectedRow:
     source: Path
     row: int
     reason: str
+
 
 rejected: list[RejectedRow] = []
 for row, raw in enumerate(rows, start=1):

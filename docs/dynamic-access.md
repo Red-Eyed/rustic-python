@@ -6,7 +6,7 @@ A service reads a retry limit from a known configuration. Renaming or misspellin
 
 **Typical Python**
 
-```text
+```python,ignore
 retries = getattr(config, "retrise", 3)
 ```
 
@@ -14,12 +14,14 @@ The typo silently selects the fallback. Attribute names passed as strings hide t
 
 **Alternative**
 
-```text
+```python,ignore
 from dataclasses import dataclass
+
 
 @dataclass(frozen=True)
 class Config:
     retries: int = 3
+
 
 config = Config()
 retries = config.retries

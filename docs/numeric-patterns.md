@@ -6,7 +6,7 @@ A formatter accepts a floating-point score. Callers may also supply an integer s
 
 **Typical Python**
 
-```text
+```python,ignore
 match score:
     case float(value):
         return f"{value:.3f}"
@@ -16,7 +16,7 @@ The annotation accepts `0`, but the runtime `float` pattern does not match an in
 
 **Alternative**
 
-```text
+```python,ignore
 match score:
     case int(value) | float(value):
         return f"{value:.3f}"
