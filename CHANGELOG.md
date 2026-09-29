@@ -2,6 +2,15 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [28f2735](https://github.com/Red-Eyed/rustic-python/commit/28f2735) — 2026-09-29
+
+**Simpler validated record example — 0.7.1**
+
+- Replace the configured `TypedDict` and `TypeAdapter` with one `BaseModel` in
+  the job metadata lesson. The example now checks named attributes directly.
+- Preserve strict worker-count validation and the policy for extra JSON fields;
+  update the corresponding tests and project version.
+
 ## [0872778](https://github.com/Red-Eyed/rustic-python/commit/0872778) — 2026-09-29
 
 **Focused, example-first lessons — 0.7.0**
