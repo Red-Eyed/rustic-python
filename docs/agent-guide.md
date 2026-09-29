@@ -11,7 +11,7 @@ the skill does not authorize replacing dependencies or refactoring unrelated cod
 
 1. Name the concrete mistake to prevent and the caller's supported decisions.
    Choose the smallest representation that makes incorrect use a checker error.
-   Consult [practical choices](practical-choices.md) before adding wrappers or interfaces.
+   Add a wrapper or interface only when it prevents a specific checked mistake.
 2. Preserve schemas and relationships in precise types. Validate unknown inputs
    at the boundary and contain library uncertainty there. Use the guide's Pydantic
    and pydantic-settings examples as the reference implementation, respecting the
@@ -23,7 +23,7 @@ the skill does not authorize replacing dependencies or refactoring unrelated cod
    base class, third-party result package, or unchecked unwrap is needed.
    A `Raises:` docstring is not a checked failure contract. See
    [Result and match](errors-and-absence.md) for recovery policy and the limits
-   of this guarantee; see [error details](error-details.md) for diagnostics.
+   of this guarantee. Carry diagnostic details in typed error variants.
 4. Keep reflection out of ordinary application logic. Use declared fields,
    explicit variants, and typed registries; contain necessary dynamic behavior
    in documented adapters or tests. See
@@ -33,15 +33,15 @@ the skill does not authorize replacing dependencies or refactoring unrelated cod
    See [composition](composition.md), [state](state-and-generics.md), and
    [generics](generics.md).
 6. Verify the promised rejection with the project's checker and the runtime
-   obligations with relevant tests. Use [pytest practices](testing.md) and
-   investigate [checker limitations](checker-limitations.md) before adding suppressions.
+   obligations with relevant tests. Investigate
+   [checker limitations](checker-limitations.md) before adding suppressions.
 
 ## Report the result
 
 Explain which mistake is now rejected, what is validated at runtime, and what
 remains a convention or caller obligation. Static acceptance does not establish
-exception freedom, ownership, or numerical correctness. For scientific code,
-apply the additional [tensor and inference guidance](ml-correctness.md).
+exception freedom, ownership, or numerical correctness. Keep native tensors in
+scientific code and test numerical behavior separately.
 
 Use the [review checklist](checklist.md) for the final pass. Detailed chapter
 contracts take precedence over an abbreviated summary; do not invent a new

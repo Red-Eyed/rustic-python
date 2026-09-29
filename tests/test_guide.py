@@ -182,12 +182,12 @@ def test_new_result_variant_requires_handling(pyrefly: Path, tmp_path: Path) -> 
 @pytest.fixture
 def unguarded_mapping_source() -> str:
     """Keep the historical mapping defect isolated from application examples."""
-    return '''def record_name(payload: object) -> str:
+    return '''def record_name(payload: object) -> str | None:
     """Reproduce mapping-pattern narrowing on unknown input in Pyrefly 1.3.1."""
     match payload:
         case {"name": str(name)}:
             return name.strip()
-    raise ValueError("expected a text name field")
+    return None
 
 
 name = record_name({"name": " training "})

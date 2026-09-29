@@ -26,33 +26,18 @@ Freezing the record blocks field reassignment but permits mutation of the list. 
 [Source](../examples/immutable_config.py)
 
 ```python
-"""Keep a small experiment configuration immutable at each stored level."""
+"""Prevent checked mutation of a small experiment configuration."""
 
-from typing import Annotated, Final
-
-from pydantic import Field, StringConstraints, TypeAdapter, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from dataclasses import dataclass
+from typing import Final
 
 
-class Experiment(BaseSettings, frozen=True):
-    """Record a seed and an immutable sequence of feature names."""
+@dataclass(frozen=True, slots=True)
+class Experiment:
+    """Store feature names in an immutable tuple."""
 
-    model_config = SettingsConfigDict(env_prefix="RUSTIC_EXPERIMENT_", extra="forbid")
-    seed: Annotated[int, Field(ge=0)] = 17
-    features: Annotated[
-        tuple[Annotated[str, StringConstraints(pattern=r"\S")], ...],
-        Field(min_length=1),
-    ] = ("height", "width")
-
-    @field_validator("seed", mode="before")
-    @classmethod
-    def _parse_seed(cls, value: object) -> int:
-        """Keep bool distinct from counts while allowing numeric settings text."""
-        # A before-validator receives arbitrary library input; recover int here.
-        match value:
-            case bool():
-                raise ValueError("seed must not be a boolean")
-        return TypeAdapter(int).validate_python(value)
+    seed: int
+    features: tuple[str, ...]
 
 
 config = Experiment(seed=17, features=("height", "width"))
@@ -68,4 +53,4 @@ the default binding in checked code.
 
 Immutability is shallow. A frozen record containing a mutable array still exposes
 that array's mutation. Here each feature name is a string, so a tuple fits the
-actual contract. Environment loading is covered separately in [settings](settings.md).
+actual contract. Environment parsing is a separate [boundary](settings.md).

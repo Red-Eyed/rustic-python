@@ -1,7 +1,6 @@
 """Expose transformation only after fitting a scalar centering model."""
 
 from dataclasses import dataclass
-from math import isfinite
 from statistics import mean
 
 
@@ -12,9 +11,7 @@ class FittedCenterer:
     offset: float
 
     def transform(self, value: float) -> float:
-        """Center a finite scalar; reject nonfinite input."""
-        if not isfinite(value):
-            raise ValueError("value must be finite")
+        """Center a scalar using the fitted offset."""
         return value - self.offset
 
 
@@ -22,14 +19,13 @@ class FittedCenterer:
 class UnfittedCenterer:
     """Provide fitting without exposing transformation."""
 
-    def fit(self, training_values: tuple[float, ...]) -> FittedCenterer:
-        """Fit finite, nonempty training values; otherwise raise ValueError."""
-        if not training_values or not all(isfinite(x) for x in training_values):
-            raise ValueError("training values must be nonempty and finite")
-        return FittedCenterer(offset=mean(training_values))
+    def fit(self, first: float, *rest: float) -> FittedCenterer:
+        """Require at least one training value in the checked call signature."""
+        return FittedCenterer(offset=mean((first, *rest)))
 
 
 unfitted = UnfittedCenterer()
-fitted = unfitted.fit((2.0, 4.0, 6.0))
+fitted = unfitted.fit(2.0, 4.0, 6.0)
 centered = fitted.transform(5.0)
 # rejected[missing-attribute]: unfitted.transform(5.0)
+# rejected[missing-argument]: unfitted.fit()

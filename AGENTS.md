@@ -4,8 +4,8 @@ This file provides guidance to Codex when working with code in this repository.
 
 ## Project overview
 
-Rustic Python is a living guide to catching Python API and data-model mistakes
-before execution. It targets Python 3.11+ and teaches general application contracts
+Rustic Python is a living guide to making type-checkable Python mistakes fail
+static checks before execution. It targets Python 3.11+ and teaches general application contracts
 before applying them to ML and scientific code. Readers need basic Python, not
 Rust or ML experience; separate reader, agent, and contributor workflows. It does not provide
 Rust's ownership, borrow checking, or scientific correctness guarantees.
@@ -29,7 +29,7 @@ annotation does not prove that unexpected exceptions cannot escape. The Result l
 uses small custom frozen Ok and Err dataclasses with a union alias, not a shared
 result base class or a third-party result package. Handle variants
 with structural pattern matching and assert_never; do not add unchecked unwrap
-methods. more-itertools demonstrates iterator utilities.
+methods.
 
 A *boundary* is where untrusted or untyped values enter typed code. A *sum type*
 is a closed union of alternatives. A *protocol* describes the small structural
@@ -44,7 +44,7 @@ provisions the project's dependencies automatically.
 ```sh
 uv run --python 3.11 --locked pytest  # Verify the minimum supported Python version
 uv run --locked pytest tests/test_guide.py  # Check snippets and static guarantees
-uv run --locked pytest tests/test_practical_defaults.py::test_batch_policy  # Focus a test
+uv run --locked pytest tests/test_behavior.py::test_undefined_precision_differs_from_zero  # Focus a test
 uv run --locked ruff check .  # Check code and configured lint rules
 uv run --locked ruff format .  # Format; reread any changed files
 uv run --locked pyrefly check  # Check the entire project using strict settings
@@ -110,9 +110,9 @@ pytest's temporary directories, not committed example code.
 - Link the complete source immediately before its Python fence using
   `[Source](../examples/name.py)`. Update source and documentation together; avoid
   duplicate source excerpts across pages.
-- Pytest lessons live in `tests/pytest_patterns/`, including their local
-  `conftest.py`. Link their complete sources too. They are collected as tests and
-  do not need artificial rejected statements.
+- If adding a pytest lesson, keep its tests and local `conftest.py` under
+  `tests/pytest_patterns/`. Link complete sources; pytest lessons do not need
+  artificial rejected statements.
 - Preserve Python 3.11 syntax: use `TypeVar`, `Generic`, and `TypeAlias` where
   needed, rather than Python 3.12 type-parameter syntax.
 - Prefer precise records for known schemas. Validate unknown inputs once at the

@@ -17,9 +17,11 @@ The conversion accepts negative counts and leaves the schema and defaults scatte
 **Alternative**
 
 ```python,ignore
-from typing import Annotated
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from dataclasses import dataclass
+from typing import Annotated, TypeAlias, assert_never
+
+from pydantic import Field, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict, SettingsError
 
 
 class Settings(BaseSettings):
@@ -27,16 +29,37 @@ class Settings(BaseSettings):
     workers: Annotated[int, Field(gt=0)] = 4
 
 
-settings = Settings()
-workers = settings.workers
+@dataclass(frozen=True)
+class InvalidSettings:
+    reason: str
+
+
+SettingsResult: TypeAlias = Settings | InvalidSettings
+
+
+def load_settings() -> SettingsResult:
+    try:
+        return Settings()
+    except (ValidationError, SettingsError) as error:
+        return InvalidSettings(str(error))
+
+
+outcome = load_settings()
+match outcome:
+    case Settings(workers=workers):
+        pass
+    case InvalidSettings(reason=reason):
+        pass
+    case _:
+        assert_never(outcome)
 ```
 
-With `APP_WORKERS` set to `"4"`, the field is integer `4`. A negative value raises
-`ValidationError` during startup. A misspelled `settings.worker_count` is rejected
-by the checker. Parsing the text and checking its range still happen at runtime.
+With `APP_WORKERS` set to `"4"`, matching the success variant binds integer
+`workers == 4`. A negative or malformed value returns `InvalidSettings`.
+The checker rejects using `.workers` on the unhandled `SettingsResult`, or a
+misspelled field on `Settings`. Parsing and range checks still happen at runtime.
 
 Load settings once at the entry point and pass values to components. Explicit
 arguments override environment values; a dotenv file must be selected deliberately.
-Malformed JSON for complex settings can raise `SettingsError` before validation.
-A configuration editor supporting correction should return a typed failure instead
-of treating invalid settings as an unrecoverable startup error.
+`SettingsError` from malformed complex settings is also translated at this
+boundary. Unexpected defects still surface as exceptions.

@@ -8,6 +8,7 @@ from pydantic import JsonValue
 
 from examples.third_party_boundary import (
     CallFailed,
+    InvalidBinding,
     InvalidResponse,
     Prediction,
     Predictor,
@@ -16,6 +17,13 @@ from examples.third_party_boundary import (
     _parse_response,
     bind_vendor,
 )
+
+
+def bound_vendor(candidate: object) -> Predictor:
+    """Narrow a valid test dependency after checking its binding outcome."""
+    result = bind_vendor(candidate)
+    assert not isinstance(result, InvalidBinding)
+    return result
 
 
 @pytest.fixture
@@ -35,7 +43,7 @@ def untyped_vendor(tmp_path: Path) -> Predictor:
         "    return {'label': 'positive', 'confidence': 0.8}\n"
     )
     candidate: object = runpy.run_path(str(path))["predict"]
-    return bind_vendor(candidate)
+    return bound_vendor(candidate)
 
 
 def test_untyped_vendor_is_contained(
@@ -57,7 +65,7 @@ def test_vendor_exception_becomes_an_outcome(
         """Simulate a vendor failure unrelated to the adapter implementation."""
         raise error
 
-    outcome = bind_vendor(broken)(request_value)
+    outcome = bound_vendor(broken)(request_value)
     match outcome:
         case CallFailed(cause=cause):
             assert cause is error
@@ -74,7 +82,7 @@ def test_wrong_signature_is_a_runtime_call_failure(
         """Simulate an incompatible SDK entry point."""
         return 42
 
-    outcome = bind_vendor(wrong_signature)(request_value)
+    outcome = bound_vendor(wrong_signature)(request_value)
     match outcome:
         case CallFailed(cause=TypeError()):
             pass
@@ -93,7 +101,7 @@ def test_process_control_signals_propagate(
         raise signal
 
     with pytest.raises(type(signal)):
-        bind_vendor(interrupted)(request_value)
+        bound_vendor(interrupted)(request_value)
 
 
 @pytest.mark.parametrize(
@@ -122,7 +130,7 @@ def test_malformed_vendor_response_is_explicit(
         """Return an unchecked response just as an untyped dependency might."""
         return response
 
-    outcome = bind_vendor(malformed)(request_value)
+    outcome = bound_vendor(malformed)(request_value)
     match outcome:
         case InvalidResponse(reason=reason):
             assert reason
@@ -140,5 +148,4 @@ def test_valid_confidence_endpoints(confidence: float) -> None:
 
 def test_noncallable_dependency_is_a_configuration_error() -> None:
     """Reject an invalid binding at construction rather than during prediction."""
-    with pytest.raises(TypeError):
-        bind_vendor(object())
+    assert bind_vendor(object()) == InvalidBinding("vendor predict must be callable")

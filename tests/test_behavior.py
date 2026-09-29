@@ -1,9 +1,10 @@
 """Check the runtime obligations that complement the guide's static contracts."""
 
 import json
+from dataclasses import FrozenInstanceError
 
 import pytest
-from pydantic import JsonValue, ValidationError
+from pydantic import JsonValue
 
 from examples import reasoned_absence as metrics
 from examples.explicit_results import Err, InvalidLabel, Ok, parse_label
@@ -11,7 +12,7 @@ from examples.generic_batches import Batch, first
 from examples.immutable_config import Experiment
 from examples.preprocessing_state import UnfittedCenterer
 from examples.task_variants import Classification, Regression
-from examples.validated_records import JobMetadata, parse_metadata
+from examples.validated_records import InvalidMetadata, JobMetadata, parse_metadata
 
 
 @pytest.mark.parametrize("raw", ["cat", "-1", "", "7.5"])
@@ -38,6 +39,34 @@ def test_undefined_precision_differs_from_zero() -> None:
     assert metrics.precision(0, 12) == metrics.Ok(0.0)
 
 
+def test_negative_counts_are_a_typed_outcome() -> None:
+    """A malformed count is visible in the result contract."""
+    assert metrics.precision(-1, 2) == metrics.Err(metrics.InvalidCounts(-1, 2))
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (metrics.Ok(0.0), "0.000"),
+        (metrics.Ok(0.5), "0.500"),
+        (
+            metrics.Err(metrics.NoPredictedPositives()),
+            "undefined: no predicted positives",
+        ),
+        (
+            metrics.Err(metrics.InvalidCounts(-1, 2)),
+            "invalid: counts must be nonnegative",
+        ),
+    ],
+)
+def test_metric_formatting(
+    value: metrics.Result[float, metrics.NoPredictedPositives | metrics.InvalidCounts],
+    expected: str,
+) -> None:
+    """Require a distinct rendering for each calculated outcome."""
+    assert metrics.format_precision(value) == expected
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -51,8 +80,7 @@ def test_undefined_precision_differs_from_zero() -> None:
 )
 def test_metadata_rejects_invalid_payload(payload: JsonValue) -> None:
     """Reject malformed external data, including booleans masquerading as counts."""
-    with pytest.raises(ValueError):
-        parse_metadata(json.dumps(payload))
+    assert isinstance(parse_metadata(json.dumps(payload)), InvalidMetadata)
 
 
 def test_metadata_discards_extra_fields() -> None:
@@ -64,7 +92,7 @@ def test_metadata_discards_extra_fields() -> None:
 
 def test_centerer_uses_training_mean() -> None:
     """Fitting establishes the offset subsequently used for transformation."""
-    fitted = UnfittedCenterer().fit((2.0, 4.0, 6.0))
+    fitted = UnfittedCenterer().fit(2.0, 4.0, 6.0)
     assert fitted.transform(5.0) == pytest.approx(1.0)
 
 
@@ -87,7 +115,7 @@ def test_invalid_task_parameters_are_rejected(count: int) -> None:
 
 @pytest.mark.parametrize("attribute", ["seed", "features"])
 def test_frozen_config_rejects_dynamic_assignment(attribute: str) -> None:
-    """Ordinary runtime attribute assignment respects frozen settings models."""
+    """Runtime assignment also respects the frozen record."""
     config = Experiment(seed=17, features=("height",))
-    with pytest.raises(ValidationError, match="frozen"):
+    with pytest.raises(FrozenInstanceError):
         setattr(config, attribute, 23)

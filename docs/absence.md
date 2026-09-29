@@ -56,25 +56,42 @@ class NoPredictedPositives:
     """Explain why precision is undefined."""
 
 
+@final
+@dataclass(frozen=True, slots=True)
+class InvalidCounts:
+    """Reject counts that cannot describe a population."""
+
+    true_positives: int
+    false_positives: int
+
+
 def precision(
     true_positives: int, false_positives: int
-) -> Result[float, NoPredictedPositives]:
-    """Compute precision for nonnegative counts."""
+) -> Result[float, NoPredictedPositives | InvalidCounts]:
+    """Compute precision or return why it cannot be calculated."""
     if true_positives < 0 or false_positives < 0:
-        raise ValueError("counts must be nonnegative")
+        return Err(InvalidCounts(true_positives, false_positives))
     predicted_positives = true_positives + false_positives
     if predicted_positives == 0:
         return Err(NoPredictedPositives())
     return Ok(true_positives / predicted_positives)
 
 
-def format_precision(result: Result[float, NoPredictedPositives]) -> str:
+def format_precision(
+    result: Result[float, NoPredictedPositives | InvalidCounts],
+) -> str:
     """Render a defined or undefined metric."""
     match result:
         case Ok(value=score):
             return f"{score:.3f}"
-        case Err(error=NoPredictedPositives()):
-            return "undefined: no predicted positives"
+        case Err(error=error):
+            match error:
+                case NoPredictedPositives():
+                    return "undefined: no predicted positives"
+                case InvalidCounts():
+                    return "invalid: counts must be nonnegative"
+                case _:
+                    assert_never(error)
         case _:
             assert_never(result)
 
@@ -94,6 +111,7 @@ added outcome variant. This is the same [Result and match](errors-and-absence.md
 pattern used for rejected input: a missing score is a supported outcome of this
 calculation.
 
-Negative counts violate this function's precondition and raise. The caller must
-also ensure both counts describe the same population. The type checker cannot
-prove either condition or the numerical correctness of the formula.
+Negative counts return `Err(InvalidCounts(...))`; callers must handle that
+case too. The caller must still ensure both counts describe the same population.
+The type checker cannot prove that condition or the numerical correctness of
+the formula.

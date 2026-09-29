@@ -1,8 +1,16 @@
 """Represent classification and regression with task-specific configuration."""
 
+from dataclasses import dataclass
 from typing import Annotated, Literal, TypeAlias, assert_never, final
 
-from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, TypeAdapter
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    TypeAdapter,
+    ValidationError,
+)
 
 
 @final
@@ -27,9 +35,23 @@ Task: TypeAlias = Annotated[Classification | Regression, Field(discriminator="ki
 TASK = TypeAdapter[Task](Task)
 
 
-def parse_task(payload: str) -> Task:
-    """Parse tagged JSON and validate its fields, or raise ValidationError."""
-    return TASK.validate_json(payload)
+@final
+@dataclass(frozen=True, slots=True)
+class InvalidTask:
+    """Report a rejected task configuration."""
+
+    reason: str
+
+
+TaskResult: TypeAlias = Classification | Regression | InvalidTask
+
+
+def parse_task(payload: str) -> TaskResult:
+    """Parse tagged JSON into a task or a typed rejection."""
+    try:
+        return TASK.validate_json(payload)
+    except ValidationError as error:
+        return InvalidTask(str(error))
 
 
 def loss_name(task: Task) -> str:
@@ -43,8 +65,15 @@ def loss_name(task: Task) -> str:
             assert_never(task)
 
 
-task = parse_task('{"kind": "classification", "num_classes": 10}')
-loss = loss_name(task)
+outcome = parse_task('{"kind": "classification", "num_classes": 10}')
+match outcome:
+    case Classification() | Regression() as task:
+        loss = loss_name(task)
+    case InvalidTask():
+        loss = "invalid task"
+    case _:
+        assert_never(outcome)
 # rejected[missing-argument,unexpected-keyword]: Classification(huber_delta=1.0)
 # rejected[missing-argument,unexpected-keyword]: Regression(num_classes=10)
 # rejected[bad-argument-type]: parse_task({})
+# rejected[bad-argument-type]: loss_name(outcome)

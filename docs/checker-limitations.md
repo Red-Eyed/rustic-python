@@ -9,11 +9,11 @@ without weakening the application's checks.
 **Reproduction**
 
 ```python,ignore
-def record_name(payload: object) -> str:
+def record_name(payload: object) -> str | None:
     match payload:
         case {"name": str(name)}:
             return name.strip()
-    raise ValueError("expected a text name field")
+    return None
 ```
 
 For `{"name": " training "}`, Python returns `"training"`. The pinned checker
@@ -24,13 +24,13 @@ application record type.
 **Scoped repair**
 
 ```python,ignore
-def record_name(payload: object) -> str:
+def record_name(payload: object) -> str | None:
     match payload:
         # Pyrefly 1.3.1 mapping-pattern defect; remove once fixed.
         # pyrefly: ignore[not-callable]
         case {"name": str(name)}:
             return name.strip()
-    raise ValueError("expected a text name field")
+    return None
 ```
 
 Only the reproduced diagnostic is suppressed. Unrelated bad assignments remain

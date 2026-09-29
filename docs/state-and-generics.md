@@ -30,7 +30,6 @@ The method exists before setup, so the checker accepts the call. The lifecycle m
 """Expose transformation only after fitting a scalar centering model."""
 
 from dataclasses import dataclass
-from math import isfinite
 from statistics import mean
 
 
@@ -41,9 +40,7 @@ class FittedCenterer:
     offset: float
 
     def transform(self, value: float) -> float:
-        """Center a finite scalar; reject nonfinite input."""
-        if not isfinite(value):
-            raise ValueError("value must be finite")
+        """Center a scalar using the fitted offset."""
         return value - self.offset
 
 
@@ -51,25 +48,25 @@ class FittedCenterer:
 class UnfittedCenterer:
     """Provide fitting without exposing transformation."""
 
-    def fit(self, training_values: tuple[float, ...]) -> FittedCenterer:
-        """Fit finite, nonempty training values; otherwise raise ValueError."""
-        if not training_values or not all(isfinite(x) for x in training_values):
-            raise ValueError("training values must be nonempty and finite")
-        return FittedCenterer(offset=mean(training_values))
+    def fit(self, first: float, *rest: float) -> FittedCenterer:
+        """Require at least one training value in the checked call signature."""
+        return FittedCenterer(offset=mean((first, *rest)))
 
 
 unfitted = UnfittedCenterer()
-fitted = unfitted.fit((2.0, 4.0, 6.0))
+fitted = unfitted.fit(2.0, 4.0, 6.0)
 centered = fitted.transform(5.0)
 # rejected[missing-attribute]: unfitted.transform(5.0)
+# rejected[missing-argument]: unfitted.fit()
 ```
 
 `unfitted.transform(5.0)` is now rejected as `missing-attribute`. Fitting
 returns the type that offers transformation, and the valid call produces `1.0`.
 The caller no longer needs to remember a separate “fitted” flag.
 
-Empty or nonfinite internal training values abort fitting; the operation has no
-fallback model. An ingestion layer supporting bad-row rejection should expose
-its own typed outcomes first. The old unfitted value remains usable, and the
-public fitted constructor can bypass fitting. These types are not proof of
-training provenance or Rust-style move semantics.
+The `first` argument also makes an empty checked fit call invalid. The type
+checker cannot prove values are finite or that they came from the intended
+dataset; validate those properties at an input boundary with a typed outcome.
+The old unfitted value remains usable, and the public fitted constructor can
+bypass fitting. These types are not proof of training provenance or Rust-style
+move semantics.

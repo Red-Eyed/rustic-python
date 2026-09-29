@@ -1,12 +1,8 @@
-"""Verify extensions and decorators without modifying the pipeline core."""
+"""Verify independent transforms without modifying the pipeline core."""
 
 from dataclasses import dataclass
-from math import isfinite
-
-import pytest
 
 from examples.plugin_composition import (
-    CheckedTransform,
     Clip,
     Features,
     Pipeline,
@@ -23,19 +19,8 @@ class Offset:
     amount: float
 
     def transform(self, values: Features, /) -> Features:
-        """Offset coordinates without mutation; reject any nonfinite result."""
-        shifted = tuple(value + self.amount for value in values)
-        if not all(isfinite(value) for value in shifted):
-            raise ValueError("shifted values must be finite")
-        return shifted
-
-
-class DropsCoordinate:
-    """Have a valid signature while violating the transform's length contract."""
-
-    def transform(self, values: Features, /) -> Features:
-        """Discard the first coordinate to demonstrate a behavioral violation."""
-        return values[1:]
+        """Offset coordinates without mutation."""
+        return tuple(value + self.amount for value in values)
 
 
 def test_independent_plugin_needs_no_core_changes() -> None:
@@ -51,10 +36,3 @@ def test_registry_accepts_an_independent_plugin() -> None:
     plugin = Offset(0.5)
     assert select_plugin("offset", {"offset": plugin}) is plugin
     assert select_plugin("missing", {"offset": plugin}) == UnknownPlugin("missing")
-
-
-def test_wrapper_enforces_behavior_beyond_signatures() -> None:
-    """Composition adds contract validation without changing the wrapped class."""
-    transform = CheckedTransform(DropsCoordinate())
-    with pytest.raises(ValueError, match="feature count"):
-        transform.transform((1.0, 2.0))

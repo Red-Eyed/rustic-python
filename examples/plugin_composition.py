@@ -2,7 +2,6 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from math import isfinite
 from typing import Annotated, Protocol, TypeAlias
 
 from pydantic import ConfigDict, Field, FiniteFloat
@@ -12,10 +11,10 @@ Features: TypeAlias = tuple[float, ...]
 
 
 class Transform(Protocol):
-    """Transform finite features without mutation, preserving their length."""
+    """Transform features without mutation while preserving their length."""
 
     def transform(self, values: Features, /) -> Features:
-        """Return finite transformed features, or raise if transformation fails."""
+        """Return transformed features with the same structural type."""
         ...
 
 
@@ -26,11 +25,8 @@ class Scale:
     factor: FiniteFloat
 
     def transform(self, values: Features, /) -> Features:
-        """Scale finite coordinates; raise ValueError on nonfinite results."""
-        scaled = tuple(value * self.factor for value in values)
-        if not all(isfinite(value) for value in scaled):
-            raise ValueError("scaled values must be finite")
-        return scaled
+        """Scale coordinates by the configured factor."""
+        return tuple(value * self.factor for value in values)
 
 
 @validated_dataclass(frozen=True, slots=True, config=ConfigDict(strict=True))
@@ -40,9 +36,7 @@ class Clip:
     limit: Annotated[FiniteFloat, Field(gt=0)]
 
     def transform(self, values: Features, /) -> Features:
-        """Clip finite coordinates to the configured symmetric interval."""
-        if not all(isfinite(value) for value in values):
-            raise ValueError("values must be finite")
+        """Clip coordinates to the configured symmetric interval."""
         return tuple(max(-self.limit, min(self.limit, value)) for value in values)
 
 
@@ -53,28 +47,10 @@ class Pipeline:
     stages: tuple[Transform, ...]
 
     def transform(self, values: Features, /) -> Features:
-        """Apply stages in order; propagate any stage's transformation failure."""
+        """Apply stages in order."""
         for stage in self.stages:
             values = stage.transform(values)
         return values
-
-
-@dataclass(frozen=True, slots=True)
-class CheckedTransform:
-    """Add runtime contract checks by wrapping an existing transform."""
-
-    inner: Transform
-
-    def transform(self, values: Features, /) -> Features:
-        """Require finite, same-length output; propagate wrapped exceptions."""
-        if not all(isfinite(value) for value in values):
-            raise ValueError("values must be finite")
-        transformed = self.inner.transform(values)
-        if len(transformed) != len(values):
-            raise ValueError("transform changed the feature count")
-        if not all(isfinite(value) for value in transformed):
-            raise ValueError("transform returned nonfinite features")
-        return transformed
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,7 +79,7 @@ class Describe:
 
 
 plugins: Mapping[str, Transform] = {"scale": Scale(2.0), "clip": Clip(1.0)}
-pipeline = Pipeline((plugins["scale"], CheckedTransform(plugins["clip"])))
+pipeline = Pipeline((plugins["scale"], plugins["clip"]))
 transformed = pipeline.transform((-2.0, 0.25, 3.0))
 selected = select_plugin("clip", plugins)
 # rejected[bad-argument-type]: Pipeline((Describe(),))

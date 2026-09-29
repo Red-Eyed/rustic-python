@@ -88,14 +88,25 @@ PredictOutcome: TypeAlias = Prediction | CallFailed | InvalidResponse
 Predictor: TypeAlias = Callable[[PredictRequest], PredictOutcome]
 
 
-def bind_vendor(candidate: object) -> Predictor:
-    """Adapt a dynamic SDK callable to typed outcomes; reject noncallable bindings.
+@final
+@dataclass(frozen=True, slots=True)
+class InvalidBinding:
+    """Explain why a discovered dependency cannot be called."""
+
+    reason: str
+
+
+BindingResult: TypeAlias = Predictor | InvalidBinding
+
+
+def bind_vendor(candidate: object) -> BindingResult:
+    """Adapt a dynamic SDK callable or return a typed binding failure.
 
     Only this integration seam accepts an unknown dependency. Callability cannot
     prove its signature; argument mismatches become ordinary call failures.
     """
     if not callable(candidate):
-        raise TypeError("vendor predict must be callable")
+        return InvalidBinding("vendor predict must be callable")
 
     def invoke(request: PredictRequest) -> PredictOutcome:
         """Call once with owned payload data and validate before returning."""
@@ -142,17 +153,23 @@ def demo_vendor(payload: VendorPayload) -> VendorResponse:
 
 
 request = PredictRequest(features=(0.2, 0.8))
-vendor = bind_vendor(demo_vendor)
-outcome = vendor(request)
-summary = describe(outcome)
-# rejected[bad-argument-type]: vendor({"instances": [0.2, 0.8]})
-# rejected[missing-attribute]: confidence = outcome.confidence
+binding = bind_vendor(demo_vendor)
+match binding:
+    case InvalidBinding(reason=reason):
+        summary = reason
+    case _:
+        outcome = binding(request)
+        summary = describe(outcome)
+unhandled: PredictOutcome = _parse_response({"label": "positive", "confidence": 0.8})
+# rejected[bad-argument-type,not-callable]: binding({"instances": [0.2, 0.8]})
+# rejected[missing-attribute]: confidence = unhandled.confidence
 # rejected[bad-typed-dict-key]: payload: VendorPayload = {"features": [0.2]}
 # rejected[bad-return]: def unchecked(request: PredictRequest) -> PredictOutcome: return {"label": "positive", "confidence": 0.8}
 ```
 
 The demo returns `Prediction(label="positive", confidence=0.8)`.
-The adapter exposes `Prediction | CallFailed | InvalidResponse`; direct
+Binding may first return `InvalidBinding`; after matching a valid `Predictor`,
+the call returns `Prediction | CallFailed | InvalidResponse`. Direct
 `.confidence` access is rejected until the caller narrows the outcome.
 Copying the payload also keeps SDK mutation away from the typed request.
 
@@ -168,8 +185,9 @@ validation bugs outside that call remain visible. It does not catch
 `KeyboardInterrupt` or `SystemExit`, stop hangs, or contain native crashes.
 Timeouts, retries, and process isolation remain caller policies.
 
-`bind_vendor` accepts `object` only at this unavoidable library seam. `callable`
-does not prove the signature: a mismatch becomes `CallFailed(TypeError(...))`.
+`bind_vendor` accepts `object` only at this unavoidable library seam. A
+noncallable candidate returns `InvalidBinding`. `callable` does not prove the
+signature: a mismatch becomes `CallFailed(TypeError(...))`.
 Unknown values stay inside the adapter, which returns precise types.
 `hide_input_in_errors` is not general redaction; apply reporting policy at the caller.
 See [declared fields](dynamic-access.md) for avoiding reflection in ordinary logic.

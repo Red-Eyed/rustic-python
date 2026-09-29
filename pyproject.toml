@@ -1,6 +1,6 @@
 [project]
 name = "rustic-python"
-version = "0.7.2"
+version = "0.8.0"
 description = "A guide to precise Python types and explicit contracts, with scientific applications"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -10,7 +10,6 @@ dependencies = [
     "pyrefly>=1.3.1",
     "pytest>=8.4",
     "ruff>=0.16.9",
-    "more-itertools>=11.1.0",
     "typing-extensions>=4.12",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15",

@@ -21,9 +21,10 @@ raises `KeyError` when the field is read.
 ```python
 """Validate job configuration before starting an operation."""
 
-from typing import Annotated
+from dataclasses import dataclass
+from typing import Annotated, TypeAlias, assert_never, final
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
 
 
 class JobMetadata(BaseModel):
@@ -34,26 +35,46 @@ class JobMetadata(BaseModel):
     workers: Annotated[int, Field(ge=1)]
 
 
-def parse_metadata(payload: str) -> JobMetadata:
-    """Load startup JSON; invalid configuration aborts with ValidationError."""
-    return JobMetadata.model_validate_json(payload)
+@final
+@dataclass(frozen=True, slots=True)
+class InvalidMetadata:
+    """Carry a validation failure for a rejected job record."""
+
+    reason: str
 
 
-metadata = parse_metadata('{"name": "report", "workers": 4}')
-workers = metadata.workers
-# rejected[missing-attribute]: workers = metadata.worker_count
+MetadataResult: TypeAlias = JobMetadata | InvalidMetadata
+
+
+def parse_metadata(payload: str) -> MetadataResult:
+    """Validate startup JSON and return either the record or its rejection."""
+    try:
+        return JobMetadata.model_validate_json(payload)
+    except ValidationError as error:
+        return InvalidMetadata(str(error))
+
+
+outcome = parse_metadata('{"name": "report", "workers": 4}')
+match outcome:
+    case JobMetadata(workers=workers):
+        pass
+    case InvalidMetadata():
+        pass
+    case _:
+        assert_never(outcome)
+# rejected[missing-attribute]: workers = JobMetadata(name="report", workers=4).worker_count
+# rejected[missing-attribute]: workers = outcome.workers
 # rejected[bad-argument-type]: parse_metadata({})
 ```
 
-The parser produces `JobMetadata(name="report", workers=4)`. With `JobMetadata`,
-the same `worker_count` access is a `missing-attribute` error before execution.
+For this input, parsing returns `JobMetadata(name="report", workers=4)`. The
+checker rejects both a misspelled model field and direct access to `.workers`
+on the unhandled `MetadataResult`. Matching narrows the successful branch.
 
-The type describes the record; Pydantic validates external JSON at runtime.
-Here it rejects nonpositive, boolean, string, and float worker counts and ignores
-extra metadata. Missing fields are rejected during validation. Invalid startup
-configuration aborts with `ValidationError`.
-A caller supporting correction or row rejection should expose a
-[typed failure](errors-and-absence.md) instead.
+Pydantic validates external JSON at runtime. Nonpositive, boolean, string, and
+float worker counts, missing fields, and malformed JSON return `InvalidMetadata`;
+extra fields are ignored by this schema. The checker then requires a caller to
+distinguish a valid record from that rejection before using its fields.
 
 Direct model construction validates too; `model_construct` and
 `model_copy(update=...)` can bypass checks. Validate the actual admission path.

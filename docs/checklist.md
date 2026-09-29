@@ -8,7 +8,7 @@ items that fit the change. Each link explains the rationale, costs, and examples
 ## Choose the contract
 
 - [ ] Name a concrete mistake the design prevents; use the simplest representation
-  that preserves the contract. [Practical choices](practical-choices.md)
+  that preserves the contract. [Purpose](fundamentals.md)
 - [ ] Give shared records precise fields and domain types. Keep required fields
   required; parse dates and timestamps at the boundary. [Data modeling](data-modeling.md)
 - [ ] Preserve relationships between arguments and results, and encode structural
@@ -25,7 +25,7 @@ items that fit the change. Each link explains the rationale, costs, and examples
 - [ ] Distinguish unavailable values from valid zero or emptiness with typed
   outcomes. [Undefined metrics](absence.md)
 - [ ] Retain the diagnostic details callers need without turning programming
-  defects into routine failures. [Failure provenance](error-details.md)
+  defects into routine failures. [Result handling](errors-and-absence.md)
 
 ## Validate at boundaries
 
@@ -36,8 +36,8 @@ items that fit the change. Each link explains the rationale, costs, and examples
   reflection local to documented adapters or tests. [Dynamic access](dynamic-access.md)
 - [ ] Keep configuration and CLI constraints consistent, and side effects at the
   application edge. [Settings](settings.md), [CLIs](typed-cli.md)
-- [ ] Define behavior for malformed, empty, nonfinite, and partial inputs where
-  relevant. [Edge cases](coercion.md)
+- [ ] Define behavior for malformed input at the typed boundary.
+  [SDK adapter](third-party-boundaries.md)
 
 ## Keep components and state understandable
 
@@ -45,15 +45,15 @@ items that fit the change. Each link explains the rationale, costs, and examples
   wrappers must preserve error and mutation contracts. [Composition](composition.md)
 - [ ] Model state-dependent operations explicitly and account for shallow
   immutability and aliases. [State](state-and-generics.md), [immutability](immutability.md)
-- [ ] In numerical code, keep native arrays and tensors; validate before compiled
-  inference. [Scientific applications](ml-correctness.md)
+- [ ] In numerical code, keep native arrays and tensors. Check numerical behavior
+  separately from static contracts. [Limits](fundamentals.md)
 
 ## Verify the promises
 
 - [ ] Check passing code and the intended static rejections. Keep workarounds
   narrow and supported by evidence. [Static evidence](tooling.md), [checker limitations](checker-limitations.md)
-- [ ] Test observable behavior and relevant edge cases. Compose fixtures through
-  arguments and cover resource cleanup. [Testing](testing.md)
+- [ ] Test observable behavior and the promised checker rejection.
+  [Reading examples](tooling.md)
 - [ ] Distinguish static guarantees, runtime validation, and conventions. Do not
   infer exception freedom, ownership, or scientific correctness from passing
   types. [Benefits and limits](fundamentals.md)

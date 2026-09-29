@@ -1,6 +1,7 @@
 """Express supported narrowing without casts or project-wide suppressions."""
 
-from typing import TypeGuard
+from dataclasses import dataclass
+from typing import TypeAlias, TypeGuard, assert_never, final
 
 
 def is_nonempty_text(value: str | int) -> TypeGuard[str]:
@@ -8,12 +9,30 @@ def is_nonempty_text(value: str | int) -> TypeGuard[str]:
     return isinstance(value, str) and bool(value.strip())
 
 
-def normalize_name(value: str | int) -> str:
-    """Strip a validated name; raise ValueError for other values."""
+@final
+@dataclass(frozen=True, slots=True)
+class InvalidName:
+    """Explain why a value cannot be used as a name."""
+
+    value: str | int
+
+
+NameResult: TypeAlias = str | InvalidName
+
+
+def normalize_name(value: str | int) -> NameResult:
+    """Strip visible text or return a typed rejection."""
     if is_nonempty_text(value):
         return value.strip()
-    raise ValueError("name must be nonempty text")
+    return InvalidName(value)
 
 
-name = normalize_name(" training ")
-# rejected[bad-assignment]: count: int = name
+outcome = normalize_name(" training ")
+match outcome:
+    case str() as name:
+        pass
+    case InvalidName():
+        pass
+    case _:
+        assert_never(outcome)
+# rejected[missing-attribute]: name = outcome.strip()

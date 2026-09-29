@@ -1,11 +1,11 @@
 # Rustic Python
 
-**Catch Python API mistakes before execution with precise types and explicit contracts.**
+**Make type-checkable Python mistakes fail static checks before execution.**
 
 [Read the book](https://red-eyed.github.io/rustic-python/)
 
 A misspelled record field, an unhandled failure, or a method called before setup
-can become a type-checking error instead of a late runtime surprise.
+can become a type-checking error. Logic and numerical correctness still need tests.
 
 Each page covers one concept: a situation, typical Python code, a better
 alternative, and why it helps. Examples and their results are visible on the page.
@@ -21,9 +21,7 @@ Then follow [validated records](docs/data-modeling.md),
 [variants](docs/variants.md), and [exhaustive matching](docs/exhaustive-matching.md).
 [Result and match](docs/errors-and-absence.md) applies these ideas to recoverable failures.
 
-Later pages cover state, protocols, external boundaries, checker limitations,
-and testing. Scientific applications keep native tensors and explain where
-static guarantees stop.
+Later pages cover state, protocols, external boundaries, and checker limitations.
 
 Optional references cover [agent setup](docs/codex.md),
 [contributing](docs/contributing.md), and the [changelog](CHANGELOG.md).

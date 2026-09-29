@@ -45,7 +45,7 @@ claim the latest revision without a successful check.
 
 All paths are relative to this installed skill, not the user's project.
 
-- Start with [practical choices](docs/practical-choices.md) and
+- Start with [the guide's purpose](docs/fundamentals.md) and
   [reading examples](docs/tooling.md).
 - For data, read [validated records](docs/data-modeling.md),
   [variants](docs/variants.md), [Result and match](docs/errors-and-absence.md),
@@ -56,8 +56,6 @@ All paths are relative to this installed skill, not the user's project.
 - For boundaries, read [SDK adapters](docs/third-party-boundaries.md),
   [dynamic access](docs/dynamic-access.md), or [settings](docs/settings.md).
 - For checker problems, read [local workarounds](docs/checker-limitations.md).
-- For science and tests, read [tensor limits](docs/ml-correctness.md) and
-  [behavioral tests](docs/testing.md).
 
 ## Configuration templates
 

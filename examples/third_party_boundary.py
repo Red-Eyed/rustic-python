@@ -68,14 +68,25 @@ PredictOutcome: TypeAlias = Prediction | CallFailed | InvalidResponse
 Predictor: TypeAlias = Callable[[PredictRequest], PredictOutcome]
 
 
-def bind_vendor(candidate: object) -> Predictor:
-    """Adapt a dynamic SDK callable to typed outcomes; reject noncallable bindings.
+@final
+@dataclass(frozen=True, slots=True)
+class InvalidBinding:
+    """Explain why a discovered dependency cannot be called."""
+
+    reason: str
+
+
+BindingResult: TypeAlias = Predictor | InvalidBinding
+
+
+def bind_vendor(candidate: object) -> BindingResult:
+    """Adapt a dynamic SDK callable or return a typed binding failure.
 
     Only this integration seam accepts an unknown dependency. Callability cannot
     prove its signature; argument mismatches become ordinary call failures.
     """
     if not callable(candidate):
-        raise TypeError("vendor predict must be callable")
+        return InvalidBinding("vendor predict must be callable")
 
     def invoke(request: PredictRequest) -> PredictOutcome:
         """Call once with owned payload data and validate before returning."""
@@ -122,10 +133,15 @@ def demo_vendor(payload: VendorPayload) -> VendorResponse:
 
 
 request = PredictRequest(features=(0.2, 0.8))
-vendor = bind_vendor(demo_vendor)
-outcome = vendor(request)
-summary = describe(outcome)
-# rejected[bad-argument-type]: vendor({"instances": [0.2, 0.8]})
-# rejected[missing-attribute]: confidence = outcome.confidence
+binding = bind_vendor(demo_vendor)
+match binding:
+    case InvalidBinding(reason=reason):
+        summary = reason
+    case _:
+        outcome = binding(request)
+        summary = describe(outcome)
+unhandled: PredictOutcome = _parse_response({"label": "positive", "confidence": 0.8})
+# rejected[bad-argument-type,not-callable]: binding({"instances": [0.2, 0.8]})
+# rejected[missing-attribute]: confidence = unhandled.confidence
 # rejected[bad-typed-dict-key]: payload: VendorPayload = {"features": [0.2]}
 # rejected[bad-return]: def unchecked(request: PredictRequest) -> PredictOutcome: return {"label": "positive", "confidence": 0.8}

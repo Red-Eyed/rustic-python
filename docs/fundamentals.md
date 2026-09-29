@@ -1,19 +1,24 @@
-# Catch mistakes before execution
+# Move type-checkable mistakes into static checks
 
 [Project overview and reading path](../README.md)
 
-A job has a name and a worker count. A caller reads `worker_count`, although the
-field is named `workers`. If the record declares its fields, a type checker can
-reject that typo before the job starts.
+**The purpose of this guide is to make type-checkable mistakes fail static checks
+instead of surfacing only when Python runs.** Every example is one view of that
+goal: a misspelled field, an unhandled failure, an invalid state transition, or
+an incompatible plugin.
 
-That is the purpose of this book: move mistakes from runtime discovery into
-checked contracts. Each lesson models a situation, shows typical Python, then
-shows an alternative and the exact misuse it rejects.
+For example, `metadata["worker_count"]` can raise `KeyError` after a job starts.
+If the record declares a `workers` field, the checker rejects
+`metadata.worker_count` before the job starts. The [record lesson](data-modeling.md)
+shows both programs and the rejected operation.
 
-Not every property is static. A declared integer still needs runtime validation
-if it must be positive. A correctly typed calculation can still be wrong. Each
-lesson names the remaining obligation instead of promising exception freedom
-or Rust's ownership guarantees.
+External data can still be malformed at runtime; a checker cannot inspect JSON
+that has not arrived yet. Validate it at the boundary. When the caller can reject,
+correct, or retry it, return a typed success-or-failure outcome. The checker can
+then reject using the success value before handling the failure. Merely replacing
+a late `KeyError` with a late `ValueError` does not meet this guide's goal.
 
-Start with [validated records](data-modeling.md). Strengthen a type when it prevents
-a concrete mistake; keep an ordinary function when it already expresses the contract.
+Static checks do not establish that an algorithm is logically correct. They also
+cannot prove numerical correctness, tensor shapes, or that Python will never
+raise. Each lesson identifies the exact mistake made checkable and names the
+runtime obligations that remain.
