@@ -2,6 +2,17 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [48f13ad](https://github.com/Red-Eyed/rustic-python/commit/48f13ad) — 2026-09-29
+
+**Type-checkable mistakes as the guide's focus — 0.8.0**
+
+- State the book's precise goal: move type-checkable mistakes into static checks,
+  while leaving logical and numerical correctness to runtime tests.
+- Remove lessons centered on runtime-only policy or repeated guarantees, along
+  with their unused examples, tests, and iterator dependency.
+- Make recoverable parser and vendor binding failures typed outcomes; simplify
+  retained examples so each demonstrates a specific checker rejection.
+
 ## [2e8bfd1](https://github.com/Red-Eyed/rustic-python/commit/2e8bfd1) — 2026-09-29
 
 **Highlight Python sketches — 0.7.2**
