@@ -105,7 +105,16 @@ the payload, and `assert_never` checks that no variant is forgotten. Assigning
 the result directly to `int`, or reading `.value` before narrowing, is rejected.
 A `Raises:` docstring cannot provide that checked contract.
 
-Use typed outcomes for supported retry, fallback, correction, or record rejection.
+Rust's standard library provides `Result<T, E>` as an enum. Python does not
+provide the equivalent, so this example uses an ordinary union of two small
+frozen dataclasses, without inheritance or a third-party package. `Ok` and `Err`
+give a reusable shape when an operation has one success type and an expected
+error. Some later lessons use a direct union such as
+`JobMetadata | InvalidMetadata`: naming the domain variants directly keeps
+those examples focused. Both designs require narrowing before the success
+value is used; `match` plus `assert_never` checks coverage of either closed union.
+
+Use `Result` for supported retry, fallback, correction, or record rejection.
 Use exceptions when the operation has no recovery path and must unwind. Translate
 specific recoverable library exceptions at the boundary; do not disguise bugs.
 Python can still raise unexpected exceptions, and a caller can discard the whole

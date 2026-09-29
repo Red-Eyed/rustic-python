@@ -9,11 +9,11 @@
 
 # Data contracts
 
+- [Result and match](errors-and-absence.md)
 - [Validated records](data-modeling.md)
 - [Variants instead of optional fields](variants.md)
 - [Exhaustive matching](exhaustive-matching.md)
 - [Distinct identifiers](identifiers.md)
-- [Result and match](errors-and-absence.md)
 - [An undefined metric is an outcome](absence.md)
 
 # API contracts

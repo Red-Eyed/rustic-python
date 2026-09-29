@@ -17,9 +17,9 @@ It uses Python 3.11+ and requires no Rust or machine-learning background.
 ## Start reading
 
 Begin with [the goal](docs/fundamentals.md) and [example notation](docs/tooling.md).
-Then follow [validated records](docs/data-modeling.md),
+[Result and match](docs/errors-and-absence.md) shows how a recoverable error
+becomes a checked outcome. Then follow [validated records](docs/data-modeling.md),
 [variants](docs/variants.md), and [exhaustive matching](docs/exhaustive-matching.md).
-[Result and match](docs/errors-and-absence.md) applies these ideas to recoverable failures.
 
 Later pages cover state, protocols, external boundaries, and checker limitations.
 
