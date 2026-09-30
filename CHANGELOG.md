@@ -2,6 +2,15 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [d9e6f5b](https://github.com/Red-Eyed/rustic-python/commit/d9e6f5bcd83ef4b01c0333cb1091c7316998cb0d) — 2026-09-30
+
+**Expected lookup failures as checked Results — 0.8.4**
+
+- Add a mapping lookup lesson that returns `Result[User, UserNotFound]` for a
+  missing key, so unchecked success access becomes a checker error.
+- Show when an expected failure belongs in `Result` and when raising for a broken
+  invariant is analogous to Rust's `panic!`.
+
 ## [60ea01b](https://github.com/Red-Eyed/rustic-python/commit/60ea01b) — 2026-09-29
 
 **Clearer state-dependent API example — 0.8.3**
