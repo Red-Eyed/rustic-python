@@ -48,6 +48,7 @@ All paths are relative to this installed skill, not the user's project.
 - Start with [the guide's purpose](docs/fundamentals.md) and
   [reading examples](docs/tooling.md).
 - For data, read [Result and match](docs/errors-and-absence.md),
+  [total operations](docs/total-operations.md),
   [validated records](docs/data-modeling.md), [variants](docs/variants.md),
   or [undefined metrics](docs/absence.md) as relevant.
 - For APIs, read [protocols](docs/oop-and-plugins.md),

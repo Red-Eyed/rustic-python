@@ -7,6 +7,7 @@ import pytest
 from pydantic import JsonValue
 
 from examples import reasoned_absence as metrics
+from examples import total_lookup as lookups
 from examples.email_state import DraftEmail
 from examples.explicit_results import Err, InvalidLabel, Ok, parse_label
 from examples.generic_batches import Batch, first
@@ -109,6 +110,20 @@ def test_batch_preserves_first_item(rest: tuple[int, ...]) -> None:
     batch = Batch(0, rest)
     assert first(batch) == 0
     assert batch.rest == rest
+
+
+def test_lookup_returns_a_user_without_losing_an_empty_name() -> None:
+    """A found user remains distinct from the missing-key outcome."""
+    outcome = lookups.find_user({"u-7": lookups.User("")}, "u-7")
+    assert outcome == lookups.Ok(lookups.User(""))
+    assert lookups.describe_user(outcome) == ""
+
+
+def test_lookup_reports_the_missing_key() -> None:
+    """A missing user can be handled without catching KeyError."""
+    outcome = lookups.find_user({"u-7": lookups.User("Ada")}, "u-9")
+    assert outcome == lookups.Err(lookups.UserNotFound("u-9"))
+    assert lookups.describe_user(outcome) == "user u-9 not found"
 
 
 @pytest.mark.parametrize("count", [-1, 0, 1])

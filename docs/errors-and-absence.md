@@ -62,6 +62,8 @@ value is used; `match` plus `assert_never` checks coverage of either closed unio
 Use `Result` for supported retry, fallback, correction, or record rejection.
 Use exceptions when the operation has no recovery path and must unwind. Translate
 specific recoverable library exceptions at the boundary; do not disguise bugs.
+Deliberately raising for a broken internal invariant is analogous to Rust's
+`panic!`: the operation cannot produce a valid result under that condition.
 Python can still raise unexpected exceptions, and a caller can discard the whole
 result. No return annotation proves exception freedom.
 

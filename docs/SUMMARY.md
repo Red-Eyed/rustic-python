@@ -10,6 +10,7 @@
 # Data contracts
 
 - [Result and match](errors-and-absence.md)
+- [Prefer total operations for expected failures](total-operations.md)
 - [Validated records](data-modeling.md)
 - [Variants instead of optional fields](variants.md)
 - [Exhaustive matching](exhaustive-matching.md)
