@@ -13,6 +13,9 @@ def may_fit_preprocessor(split: str) -> bool:
             return True
         case _:
             return False
+
+
+allowed = may_fit_preprocessor("holdout")
 ```
 
 The new split silently falls into the default. Nothing tells the author that an existing decision now covers an unreviewed case.
@@ -31,6 +34,9 @@ def may_fit_preprocessor(split: Split) -> bool:
             return False
         case _:
             assert_never(split)
+
+
+allowed = may_fit_preprocessor("train")
 ```
 
 [Source](../examples/exhaustive_matching.py)

@@ -16,7 +16,9 @@ Give each concept its own short page in this order:
    where the point is a conventional pattern, not a complete runnable source file.
    Do not invent strawman use of `object`, `Any`, or `Err` as typical Python.
 3. Show the better alternative in a short sketch containing only the contract
-   and operation that change. Link the complete checked source for details.
+   and operation that change. Show a short caller use, including how it handles
+   an expected failure or consumes the successful value. Link the complete
+   checked source for details.
 4. After the sketch, state the observed outcome and why the change helps. Name
    the exact mistake the checker rejects; label runtime improvements honestly.
 5. Mention only limits and edge cases that change the design decision. If the
@@ -34,7 +36,9 @@ design principles from the reference tool stack. Keep development history in the
 changelog; turn past bugs into lasting lessons rather than review narratives.
 Keep one explanation and one useful example per idea. Remove repeated policy
 reminders, chapter summaries, and background that does not change a decision.
-Use realistic domains for type distinctions, such as customer and order IDs.
+Do not wrap ordinary identifiers in nominal types solely to demonstrate typing.
+Prefer clear names and keyword arguments; require a demonstrated recurring
+mix-up before adding distinct types.
 Keep numerical APIs on native tensors; do not manufacture tuple-based softmax
 implementations or nominal tensor wrappers to make a typing point.
 The detailed chapter owns the rationale. Keep the checklist and agent entry points

@@ -17,9 +17,12 @@ class Describe:
 
 
 features = prepare((1.0, 2.0), Describe())
+total = sum(features)
 ```
 
-The helper returns text where later code expects numbers. The interface is implicit, so the mismatch reaches runtime.
+The helper returns `"2 features"` where later code expects numbers. `sum(features)`
+raises `TypeError` at runtime. The interface is implicit, so the mismatch survives
+until the caller uses the value.
 
 **Alternative**
 
@@ -30,12 +33,17 @@ class FeatureTransform(Protocol):
 
 def prepare(values: Features, transform: FeatureTransform) -> Features:
     return transform.transform(values)
+
+
+features = prepare((1.0, 2.0), Identity())
+total = sum(features)
 ```
 
 [Source](../examples/small_protocols.py)
 
-`Identity` is accepted and returns `(1.0, 2.0)`. Passing `Describe` is rejected
-as `bad-argument-type`: its return type violates `FeatureTransform`.
+`Identity` is accepted, returns `(1.0, 2.0)`, and gives `total == 3.0`.
+Passing `Describe` is rejected as `bad-argument-type`: its return type violates
+`FeatureTransform`.
 Implementations satisfy the protocol structurally, without inheriting from it.
 Positional-only arguments avoid requiring identical parameter names.
 

@@ -18,9 +18,15 @@ class Task:
 
 
 task = Task(kind="classification", huber_delta=0.5)
+if task.kind == "classification":
+    if task.num_classes is None:
+        raise ValueError("class count required")
+    num_outputs = task.num_classes + 1
 ```
 
-This well-typed object lacks the classifier setting and contains an unrelated regression setting. The error is left for later code to discover.
+This well-typed object lacks the classifier setting and contains an unrelated
+regression setting. The caller must check the missing field, and this example
+raises `ValueError` only when it reaches that guard at runtime.
 
 **Alternative**
 
@@ -36,6 +42,9 @@ class Regression(BaseModel):
 
 
 Task = Classification | Regression
+
+classification = Classification(num_classes=10)
+num_outputs = classification.num_classes + 1
 ```
 
 Each variant owns its required fields. The complete example adds boundary

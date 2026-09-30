@@ -12,6 +12,10 @@ something different: predictions were made, but none was correct.
 def precision(true_positives: int, false_positives: int) -> float:
     total = true_positives + false_positives
     return true_positives / total if total else 0.0
+
+
+undefined = precision(0, 0)
+incorrect = precision(0, 12)
 ```
 
 Both `(0, 0)` and `(0, 12)` return `0.0`. A caller cannot tell an undefined
@@ -26,6 +30,18 @@ def precision(tp: int, fp: int) -> Result[float, NoPredictedPositives | InvalidC
     if tp + fp == 0:
         return Err(NoPredictedPositives())
     return Ok(tp / (tp + fp))
+
+
+outcome = precision(0, 0)
+match outcome:
+    case Ok(value=score):
+        report = f"{score:.3f}"
+    case Err(error=NoPredictedPositives()):
+        report = "undefined: no predicted positives"
+    case Err(error=InvalidCounts()):
+        report = "invalid counts"
+    case _:
+        assert_never(outcome)
 ```
 
 This uses the [`Result` pattern](errors-and-absence.md) defined in the preceding

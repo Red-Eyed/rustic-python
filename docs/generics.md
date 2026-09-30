@@ -12,6 +12,7 @@ def first(items):
 
 
 job = first(jobs)
+empty_job = first(())
 ```
 
 The helper has no declared relationship between its input and output types.
@@ -32,6 +33,9 @@ class Batch(Generic[T]):
 
 def first(batch: Batch[T]) -> T:
     return batch.head
+
+
+job = first(Batch(Job("report")))
 ```
 
 [Source](../examples/generic_batches.py)

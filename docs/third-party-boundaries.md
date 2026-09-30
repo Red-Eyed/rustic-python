@@ -26,6 +26,18 @@ def invoke(request: PredictRequest) -> PredictOutcome:
     except Exception as error:
         return CallFailed(error)
     return _parse_response(response)
+
+
+outcome = invoke(PredictRequest(features=(0.2, 0.8)))
+match outcome:
+    case Prediction(confidence=confidence):
+        message = f"confidence {confidence:.3f}"
+    case CallFailed(cause=cause):
+        message = f"SDK error: {type(cause).__name__}"
+    case InvalidResponse(reason=reason):
+        message = f"bad response: {reason}"
+    case _:
+        assert_never(outcome)
 ```
 
 The adapter owns the uncertain call and validates its response. Its typed

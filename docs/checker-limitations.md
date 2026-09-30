@@ -14,6 +14,9 @@ def record_name(payload: object) -> str | None:
         case {"name": str(name)}:
             return name.strip()
     return None
+
+
+name = record_name({"name": " training "})
 ```
 
 For `{"name": " training "}`, Python returns `"training"`. The pinned checker
@@ -31,6 +34,9 @@ def record_name(payload: object) -> str | None:
         case {"name": str(name)}:
             return name.strip()
     return None
+
+
+name = record_name({"name": " training "})
 ```
 
 Only the reproduced diagnostic is suppressed. Unrelated bad assignments remain

@@ -9,7 +9,7 @@ items that fit the change. Each link explains the rationale, costs, and examples
 
 - [ ] Name a concrete mistake the design prevents; use the simplest representation
   that preserves the contract. [Purpose](fundamentals.md)
-- [ ] Give shared records precise fields and domain types. Keep required fields
+- [ ] Give shared records precise fields. Keep required fields
   required; parse dates and timestamps at the boundary. [Data modeling](data-modeling.md)
 - [ ] Preserve relationships between arguments and results, and encode structural
   preconditions where useful. [State](state-and-generics.md), [generics](generics.md)

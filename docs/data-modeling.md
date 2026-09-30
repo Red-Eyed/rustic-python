@@ -27,6 +27,16 @@ def parse_metadata(payload: str) -> JobMetadata | InvalidMetadata:
         return JobMetadata.model_validate_json(payload)
     except ValidationError as error:
         return InvalidMetadata(str(error))
+
+
+outcome = parse_metadata('{"name": "report", "workers": 4}')
+match outcome:
+    case JobMetadata(workers=workers):
+        summary = f"{workers} workers"
+    case InvalidMetadata(reason=reason):
+        summary = f"rejected: {reason}"
+    case _:
+        assert_never(outcome)
 ```
 
 The typed rejection follows the [Result lesson](errors-and-absence.md); this

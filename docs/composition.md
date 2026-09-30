@@ -13,9 +13,14 @@ def apply(values, operation):
     if operation == "clip":
         return tuple(max(-1, min(1, value)) for value in values)
     raise ValueError("unknown operation")
+
+
+processed = apply(apply((-2.0, 0.25, 3.0), "scale"), "clip")
 ```
 
-Every new operation edits this dispatcher. The string selector also hides which behavior and configuration an operation provides.
+The nested calls produce `(-1.0, 0.5, 1.0)`, but every new operation requires
+editing the dispatcher. An unknown string raises `ValueError` only when called;
+the selector hides which behavior and configuration an operation provides.
 
 **Alternative**
 
@@ -32,6 +37,10 @@ class Pipeline:
         for stage in self.stages:
             values = stage.transform(values)
         return values
+
+
+pipeline = Pipeline((Scale(2.0), Clip(1.0)))
+processed = pipeline.transform((-2.0, 0.25, 3.0))
 ```
 
 The [protocol lesson](oop-and-plugins.md) explains why an incompatible

@@ -14,6 +14,7 @@ def find_user(users: Mapping[str, User], user_id: str) -> User:
     return users[user_id]
 
 
+users = {"u-7": User("Ada")}
 user = find_user(users, "u-9")
 ```
 
@@ -28,6 +29,17 @@ def find_user(users: Mapping[str, User], user_id: str) -> Result[User, UserNotFo
     if user is None:
         return Err(UserNotFound(user_id))
     return Ok(user)
+
+
+users = {"u-7": User("Ada")}
+outcome = find_user(users, "u-9")
+match outcome:
+    case Ok(value=user):
+        message = user.name
+    case Err(error=UserNotFound(user_id=missing_id)):
+        message = f"user {missing_id} not found"
+    case _:
+        assert_never(outcome)
 ```
 
 [Source](../examples/total_lookup.py)

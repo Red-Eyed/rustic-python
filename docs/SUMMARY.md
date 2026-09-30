@@ -14,7 +14,6 @@
 - [Validated records](data-modeling.md)
 - [Variants instead of optional fields](variants.md)
 - [Exhaustive matching](exhaustive-matching.md)
-- [Distinct identifiers](identifiers.md)
 - [An undefined metric is an outcome](absence.md)
 
 # API contracts

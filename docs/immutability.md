@@ -31,13 +31,15 @@ class Experiment:
 
 
 config = Experiment(seed=17, features=("height", "width"))
+expanded_features = config.features + ("area",)
 ```
 
 [Source](../examples/immutable_config.py)
 
 The tuple field has no `.append`, so that operation is rejected as
 `missing-attribute`. Frozen fields reject reassignment, and `Final` protects
-the default binding in checked code.
+the default binding in checked code. The caller's `expanded_features` is a new
+tuple; `config.features` still contains only `("height", "width")`.
 
 Immutability is shallow. A frozen record containing a mutable array still exposes
 that array's mutation. Here each feature name is a string, so a tuple fits the

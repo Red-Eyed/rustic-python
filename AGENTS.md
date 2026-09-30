@@ -124,8 +124,10 @@ directories, not committed example code.
   model construction outside compiled inference; use native tensors and plain
   NamedTuple/TypedDict records there. Internal dataclasses and algorithm guards
   remain appropriate. Keep native arrays and tensors in numerical code. Do not demonstrate
-  numerical APIs with tuple-based stand-ins or nominal Logits/Probabilities wrappers;
-  use realistic domains such as distinct identifiers to teach nominal types.
+  numerical APIs with tuple-based stand-ins or nominal Logits/Probabilities wrappers.
+  Do not wrap ordinary identifiers in nominal types solely to demonstrate typing.
+  Prefer clear names and keyword arguments; require a demonstrated recurring
+  mix-up before adding distinct types.
 - Use small protocols at real extension points, composition for added behavior,
   and exhaustive matching for closed unions. Do not manufacture abstractions for
   ordinary pure functions.
