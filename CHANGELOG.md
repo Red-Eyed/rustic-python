@@ -2,6 +2,16 @@
 
 Changes are grouped by commit, newest first. Dates come from Git history.
 
+## [e6a3f53](https://github.com/Red-Eyed/rustic-python/commit/e6a3f53768b0f0036652c4d7f343a42d67adbe45) — 2026-09-30
+
+**Show caller behavior in lesson sketches — 0.8.5**
+
+- Add short calls and handled outcomes to the lessons so readers can see the
+  runtime failure or value before the change and the caller benefit afterward.
+- Remove the distinct-identifier lesson and its manual `NewType` wrappers;
+  recommend clear names and keyword arguments unless repeated ID mix-ups justify
+  distinct types.
+
 ## [d9e6f5b](https://github.com/Red-Eyed/rustic-python/commit/d9e6f5bcd83ef4b01c0333cb1091c7316998cb0d) — 2026-09-30
 
 **Expected lookup failures as checked Results — 0.8.4**
